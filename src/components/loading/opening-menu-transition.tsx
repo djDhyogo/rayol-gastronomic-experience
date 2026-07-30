@@ -1,111 +1,184 @@
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/common/brand-logo";
+import { cn } from "@/lib/utils";
 
 interface OpeningMenuTransitionProps {
-  active: boolean;
-  coverSrc?: string;
+  /** Enquanto true, a capa permanece fechada (hold). */
+  hold: boolean;
+  /** Capa mobile (retrato). */
+  coverSrcMobile?: string;
+  /** Capa desktop (paisagem). */
+  coverSrcDesktop?: string;
   onFinished?: () => void;
 }
 
+const OPEN_MS = 1450;
+const EASE_OPEN = [0.22, 0.61, 0.36, 1] as const;
+const DESKTOP_MQ = "(min-width: 768px)";
+
+function resolveCoverSrc(mobile: string, desktop: string) {
+  if (typeof window === "undefined") return mobile;
+  return window.matchMedia(DESKTOP_MQ).matches ? desktop : mobile;
+}
+
 /**
- * Simula a abertura física do cardápio em perspectiva 3D.
- * Se a capa oficial não existir no caminho informado, usa fallback da marca.
+ * Única apresentação de entrada: hold da capa → abertura 3D → remove overlay.
+ * Usa capa retrato no mobile e paisagem no desktop.
  */
 export function OpeningMenuTransition({
-  active,
-  coverSrc = "/menu-cover.png",
+  hold,
+  coverSrcMobile = "/menu-cover.jpg",
+  coverSrcDesktop = "/menu-cover-desktop.jpg",
   onFinished,
 }: OpeningMenuTransitionProps) {
   const reduceMotion = useReducedMotion();
-  const [coverUnavailable, setCoverUnavailable] = useState(false);
-
-  const exitTiming = useMemo(
-    () => ({ duration: reduceMotion ? 0.2 : 1.45, ease: [0.22, 0.61, 0.36, 1] as const }),
-    [reduceMotion],
+  const [phase, setPhase] = useState<"hold" | "opening">("hold");
+  const [coverSrc, setCoverSrc] = useState(() =>
+    resolveCoverSrc(coverSrcMobile, coverSrcDesktop),
   );
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const [coverUnavailable, setCoverUnavailable] = useState(false);
+  const openingStarted = useRef(false);
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    const sync = () => {
+      const next = resolveCoverSrc(coverSrcMobile, coverSrcDesktop);
+      setCoverSrc((prev) => {
+        if (prev === next) return prev;
+        setCoverLoaded(false);
+        return next;
+      });
+    };
+    sync();
+    const mql = window.matchMedia(DESKTOP_MQ);
+    mql.addEventListener("change", sync);
+    return () => mql.removeEventListener("change", sync);
+  }, [coverSrcMobile, coverSrcDesktop]);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = coverSrc;
+    if (img.complete) {
+      setCoverLoaded(true);
+      return;
+    }
+    img.onload = () => setCoverLoaded(true);
+    img.onerror = () => {
+      setCoverUnavailable(true);
+      setCoverLoaded(true);
+    };
+  }, [coverSrc]);
+
+  useEffect(() => {
+    if (hold) {
+      openingStarted.current = false;
+      finishedRef.current = false;
+      setPhase("hold");
+      return;
+    }
+
+    if (openingStarted.current || !coverLoaded) return;
+    openingStarted.current = true;
+
+    if (reduceMotion) {
+      if (!finishedRef.current) {
+        finishedRef.current = true;
+        onFinished?.();
+      }
+      return;
+    }
+
+    setPhase("opening");
+    const timer = window.setTimeout(() => {
+      if (!finishedRef.current) {
+        finishedRef.current = true;
+        onFinished?.();
+      }
+    }, OPEN_MS);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hold, coverLoaded, reduceMotion]);
+
+  const isOpening = phase === "opening";
 
   return (
-    <AnimatePresence mode="wait" onExitComplete={onFinished}>
-      {active ? (
+    <div
+      className={cn(
+        "fixed inset-0 z-[120]",
+        isOpening ? "pointer-events-none overflow-visible bg-transparent" : "overflow-hidden bg-brand-navy",
+      )}
+      aria-hidden="true"
+    >
+      <div
+        className="relative size-full"
+        style={{ perspective: "1600px", perspectiveOrigin: "left center" }}
+      >
         <motion.div
-          key="opening-menu-transition"
-          className="fixed inset-0 z-[120] overflow-hidden bg-brand-navy"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{
-            opacity: 0,
-            transition: {
-              duration: reduceMotion ? 0.15 : 0.38,
-              delay: reduceMotion ? 0 : 1.02,
-            },
+          className="absolute inset-0 origin-left will-change-transform bg-brand-navy"
+          initial={false}
+          animate={
+            isOpening
+              ? { rotateY: -102, x: "-10%", scale: 0.97 }
+              : { rotateY: 0, x: "0%", scale: 1 }
+          }
+          transition={{
+            duration: OPEN_MS / 1000,
+            ease: EASE_OPEN,
           }}
-          aria-hidden="true"
+          style={{
+            transformOrigin: "left center",
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+          }}
         >
-          <div className="relative size-full [perspective:1800px] [transform-style:preserve-3d]">
-            <motion.div
-              className="absolute inset-0 origin-left will-change-transform"
-              initial={false}
-              animate={{ rotateY: 0, x: "0%", scale: 1 }}
-              exit={
-                reduceMotion
-                  ? { opacity: 0, transition: exitTiming }
-                  : {
-                      rotateY: -106,
-                      x: "-14%",
-                      scale: 0.972,
-                      transition: exitTiming,
-                    }
-              }
-              style={{ transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
-            >
-              {coverUnavailable ? (
-                <div className="flex size-full items-center justify-center bg-brand-navy px-10">
-                  <BrandLogo variant="light" priority className="w-full max-w-xl" />
-                </div>
-              ) : (
-                <img
-                  src={coverSrc}
-                  alt=""
-                  className="size-full object-cover"
-                  decoding="sync"
-                  loading="eager"
-                  fetchPriority="high"
-                  onError={() => setCoverUnavailable(true)}
-                />
-              )}
-
-              <motion.div
-                className="pointer-events-none absolute inset-0 bg-[linear-gradient(88deg,rgba(9,23,45,0.52)_0%,rgba(9,23,45,0.22)_24%,rgba(9,23,45,0.06)_44%,rgba(9,23,45,0)_65%)]"
-                initial={{ opacity: 0.16 }}
-                animate={{ opacity: 0.16 }}
-                exit={
-                  reduceMotion
-                    ? { opacity: 0 }
-                    : {
-                        opacity: [0.14, 0.44, 0],
-                        transition: exitTiming,
-                      }
-                }
+          {coverUnavailable ? (
+            <div className="flex size-full items-center justify-center bg-brand-navy px-10">
+              <BrandLogo variant="light" priority className="w-full max-w-xl" />
+            </div>
+          ) : (
+            <picture>
+              <source media={DESKTOP_MQ} srcSet={coverSrcDesktop} />
+              <img
+                src={coverSrcMobile}
+                alt=""
+                className={cn(
+                  "size-full object-cover object-center transition-opacity duration-300",
+                  coverLoaded ? "opacity-100" : "opacity-0",
+                )}
+                decoding="sync"
+                loading="eager"
+                fetchPriority="high"
+                draggable={false}
+                onLoad={() => setCoverLoaded(true)}
+                onError={() => {
+                  setCoverUnavailable(true);
+                  setCoverLoaded(true);
+                }}
               />
-            </motion.div>
+            </picture>
+          )}
 
-            <motion.div
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(98deg,rgba(8,19,39,0)_34%,rgba(8,19,39,0.42)_58%,rgba(8,19,39,0)_82%)]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0 }}
-              exit={
-                reduceMotion
-                  ? { opacity: 0 }
-                  : {
-                      opacity: [0, 0.46, 0],
-                      transition: exitTiming,
-                    }
-              }
-            />
-          </div>
+          <motion.div
+            className="pointer-events-none absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-black/50 via-brand-navy/25 to-transparent md:w-[18%]"
+            animate={{ opacity: isOpening ? 0.85 : 0.22 }}
+            transition={{ duration: isOpening ? 0.55 : 0.4, ease: EASE_OPEN }}
+          />
+
+          <motion.div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            initial={false}
+            animate={
+              isOpening
+                ? { opacity: [0, 0.45, 0], x: ["-30%", "55%", "110%"] }
+                : { opacity: 0, x: "-30%" }
+            }
+            transition={{ duration: isOpening ? 1.15 : 0.3, ease: EASE_OPEN }}
+          />
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 }

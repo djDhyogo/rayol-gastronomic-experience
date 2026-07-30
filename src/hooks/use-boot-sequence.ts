@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 
-const MIN_DURATION = 2200;
+const MIN_DURATION = 2000;
 
 /**
- * Controla a tela de entrada da marca: executa em todo carregamento/reload,
- * com duração mínima para a animação completar e espera o catálogo estar pronto.
- * Não usa storage — cada F5 / visita nova dispara a abertura.
+ * Hold da capa: dura no mínimo MIN_DURATION e espera o catálogo.
+ * A animação de abertura em si é controlada pelo overlay (onFinished).
  */
 export function useBootSequence(ready: boolean) {
   const [minElapsed, setMinElapsed] = useState(false);
@@ -15,5 +14,8 @@ export function useBootSequence(ready: boolean) {
     return () => window.clearTimeout(timer);
   }, []);
 
-  return { showBootScreen: !(ready && minElapsed) };
+  /** true = manter capa fechada; false = pode iniciar o efeito de abertura */
+  const holdCover = !(ready && minElapsed);
+
+  return { holdCover };
 }

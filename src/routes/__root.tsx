@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -17,6 +17,7 @@ import { OpeningTransitionProvider } from "@/components/loading/opening-transiti
 import { Toaster } from "@/components/ui/sonner";
 import { useCatalog } from "@/hooks/use-catalog";
 import { useBootSequence } from "@/hooks/use-boot-sequence";
+import { cn } from "@/lib/utils";
 
 function NotFoundComponent() {
   return (
@@ -100,6 +101,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preload", href: "/menu-cover.jpg", as: "image", type: "image/jpeg", media: "(max-width: 767px)" },
+      {
+        rel: "preload",
+        href: "/menu-cover-desktop.jpg",
+        as: "image",
+        type: "image/jpeg",
+        media: "(min-width: 768px)",
+      },
     ],
   }),
 
@@ -125,17 +134,47 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AppShell() {
   const { isFetched, isError } = useCatalog();
-  const { showBootScreen } = useBootSequence(isFetched || isError);
+  const { holdCover } = useBootSequence(isFetched || isError);
+  /** Capa viva até o fim da abertura — evita header/hero “acordarem” no meio do efeito */
+  const [introDone, setIntroDone] = useState(false);
+  const introActive = !introDone;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (introActive) {
+      root.classList.add("intro-lock");
+      return () => root.classList.remove("intro-lock");
+    }
+    root.classList.remove("intro-lock");
+  }, [introActive]);
 
   return (
     <>
-      <OpeningTransitionProvider active={showBootScreen}>
-        <SiteLayout>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </SiteLayout>
+      <OpeningTransitionProvider active={introActive}>
+        <div
+          className={cn(
+            "transition-opacity duration-300",
+            /* Esconde o site só no hold — na abertura a página aparece atrás da capa */
+            introActive && holdCover && "pointer-events-none opacity-0",
+          )}
+          aria-hidden={introActive && holdCover ? true : undefined}
+        >
+          <SiteLayout>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </SiteLayout>
+        </div>
       </OpeningTransitionProvider>
-      <OpeningMenuTransition active={showBootScreen} coverSrc="/menu-cover.png" />
+
+      {introActive ? (
+        <OpeningMenuTransition
+          hold={holdCover}
+          coverSrcMobile="/menu-cover.jpg"
+          coverSrcDesktop="/menu-cover-desktop.jpg"
+          onFinished={() => setIntroDone(true)}
+        />
+      ) : null}
+
       <Toaster position="top-center" />
     </>
   );

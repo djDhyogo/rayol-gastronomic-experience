@@ -99,6 +99,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Evita flash creme antes/durante a capa de abertura */
+  html.intro-lock,
+  html.intro-lock body {
+    background-color: var(--brand-navy);
+  }
+
   h1,
   h2,
   h3,
