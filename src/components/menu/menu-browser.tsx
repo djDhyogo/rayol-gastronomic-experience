@@ -15,7 +15,6 @@ import {
   useGroupedProducts,
   type MenuFilters,
 } from "@/hooks/use-menu-filters";
-import { HAPPY_HOUR_SLUG, PROMO_SLUG } from "@/constants/restaurant";
 import type { Product } from "@/types/catalog";
 
 interface MenuBrowserProps {
@@ -61,13 +60,7 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
           <CategoryRail categories={data?.categories ?? []} activeSlug={categorySlug ?? null} />
         )}
         {!isPending && data ? (
-          <FilterBar
-            filters={activeFilters}
-            onChange={patch}
-            bounds={bounds}
-            hasPromo={data.categories.some((item) => item.slug === PROMO_SLUG)}
-            hasHappyHour={data.categories.some((item) => item.slug === HAPPY_HOUR_SLUG)}
-          />
+          <FilterBar filters={activeFilters} onChange={patch} bounds={bounds} />
         ) : null}
       </div>
 

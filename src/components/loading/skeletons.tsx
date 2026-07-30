@@ -30,10 +30,22 @@ export function ProductGridSkeleton({ count = 6 }: SkeletonGridProps) {
 
 export function CategoryRailSkeleton() {
   return (
-    <div className="flex gap-2" aria-hidden="true">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <div key={index} className="shimmer h-9 w-28 shrink-0 rounded-full" />
-      ))}
+    <div className="space-y-2" aria-hidden="true">
+      <div className="h-3 w-20 rounded-sm bg-transparent" />
+      <div className="scroll-rail -mx-4 px-4">
+        <div className="flex w-max flex-col gap-2.5">
+          <div className="flex gap-2.5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`top-${index}`} className="shimmer h-11 w-28 rounded-full" />
+            ))}
+          </div>
+          <div className="flex gap-2.5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`bottom-${index}`} className="shimmer h-11 w-28 rounded-full" />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

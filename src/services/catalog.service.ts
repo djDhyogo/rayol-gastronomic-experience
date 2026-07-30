@@ -2,7 +2,12 @@ import { apiGet } from "@/services/api-client";
 import { categorySchema, paginatedSchema, productSchema } from "@/schemas/catalog";
 import type { ApiCategory, ApiProduct, Catalog, Category, Product, ProductBadge } from "@/types/catalog";
 import { cleanCategoryName, formatPrice, normalize, toNumber, truncate } from "@/utils/format";
-import { CATEGORY_ORDER, HAPPY_HOUR_SLUG, PROMO_SLUG } from "@/constants/restaurant";
+import {
+  CATEGORY_ORDER,
+  HAPPY_HOUR_SLUG,
+  HIDDEN_CATEGORY_SLUGS,
+  PROMO_SLUG,
+} from "@/constants/restaurant";
 
 const PAGE_SIZE = 200;
 const MAX_PAGES = 20;
@@ -80,8 +85,14 @@ function toCategories(raw: ApiCategory[], products: Product[]): Category[] {
       position: category.position,
       count: products.filter((product) => product.categorySlug === category.slug).length,
     }))
-    .filter((category) => category.count > 0)
-    .sort((a, b) => orderIndex(a.slug) - orderIndex(b.slug) || a.name.localeCompare(b.name));
+    .filter(
+      (category) =>
+        category.count > 0 && !HIDDEN_CATEGORY_SLUGS.includes(category.slug),
+    )
+    .sort(
+      (a, b) =>
+        orderIndex(a.slug) - orderIndex(b.slug) || a.name.localeCompare(b.name, "pt-BR"),
+    );
 }
 
 export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
