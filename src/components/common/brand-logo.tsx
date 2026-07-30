@@ -16,7 +16,7 @@ export function BrandLogo({ variant = "dark", className, priority = false }: Bra
       width={1040}
       height={315}
       loading={priority ? "eager" : "lazy"}
-      decoding="async"
+      decoding={priority ? "sync" : "async"}
       className={cn("h-auto w-full select-none object-contain", className)}
     />
   );

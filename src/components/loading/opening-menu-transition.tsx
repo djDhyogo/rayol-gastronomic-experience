@@ -6,70 +6,21 @@ import { cn } from "@/lib/utils";
 interface OpeningMenuTransitionProps {
   /** Enquanto true, a capa permanece fechada (hold). */
   hold: boolean;
-  /** Capa mobile (retrato). */
-  coverSrcMobile?: string;
-  /** Capa desktop (paisagem). */
-  coverSrcDesktop?: string;
   onFinished?: () => void;
 }
 
 const OPEN_MS = 1450;
 const EASE_OPEN = [0.22, 0.61, 0.36, 1] as const;
-const DESKTOP_MQ = "(min-width: 768px)";
-
-function resolveCoverSrc(mobile: string, desktop: string) {
-  if (typeof window === "undefined") return mobile;
-  return window.matchMedia(DESKTOP_MQ).matches ? desktop : mobile;
-}
 
 /**
- * Única apresentação de entrada: hold da capa → abertura 3D → remove overlay.
- * Usa capa retrato no mobile e paisagem no desktop.
+ * Intro só com CSS + logo (sem capa fotográfica).
+ * Hold navy → abertura 3D da “página” → site por trás.
  */
-export function OpeningMenuTransition({
-  hold,
-  coverSrcMobile = "/menu-cover.jpg",
-  coverSrcDesktop = "/menu-cover-desktop.jpg",
-  onFinished,
-}: OpeningMenuTransitionProps) {
+export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitionProps) {
   const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState<"hold" | "opening">("hold");
-  const [coverSrc, setCoverSrc] = useState(() =>
-    resolveCoverSrc(coverSrcMobile, coverSrcDesktop),
-  );
-  const [coverLoaded, setCoverLoaded] = useState(false);
-  const [coverUnavailable, setCoverUnavailable] = useState(false);
   const openingStarted = useRef(false);
   const finishedRef = useRef(false);
-
-  useEffect(() => {
-    const sync = () => {
-      const next = resolveCoverSrc(coverSrcMobile, coverSrcDesktop);
-      setCoverSrc((prev) => {
-        if (prev === next) return prev;
-        setCoverLoaded(false);
-        return next;
-      });
-    };
-    sync();
-    const mql = window.matchMedia(DESKTOP_MQ);
-    mql.addEventListener("change", sync);
-    return () => mql.removeEventListener("change", sync);
-  }, [coverSrcMobile, coverSrcDesktop]);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = coverSrc;
-    if (img.complete) {
-      setCoverLoaded(true);
-      return;
-    }
-    img.onload = () => setCoverLoaded(true);
-    img.onerror = () => {
-      setCoverUnavailable(true);
-      setCoverLoaded(true);
-    };
-  }, [coverSrc]);
 
   useEffect(() => {
     if (hold) {
@@ -79,7 +30,7 @@ export function OpeningMenuTransition({
       return;
     }
 
-    if (openingStarted.current || !coverLoaded) return;
+    if (openingStarted.current) return;
     openingStarted.current = true;
 
     if (reduceMotion) {
@@ -100,7 +51,7 @@ export function OpeningMenuTransition({
 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hold, coverLoaded, reduceMotion]);
+  }, [hold, reduceMotion]);
 
   const isOpening = phase === "opening";
 
@@ -117,7 +68,7 @@ export function OpeningMenuTransition({
         style={{ perspective: "1600px", perspectiveOrigin: "left center" }}
       >
         <motion.div
-          className="absolute inset-0 origin-left will-change-transform bg-brand-navy"
+          className="absolute inset-0 origin-left flex will-change-transform items-center justify-center bg-brand-navy px-8"
           initial={false}
           animate={
             isOpening
@@ -134,48 +85,37 @@ export function OpeningMenuTransition({
             backfaceVisibility: "hidden",
           }}
         >
-          {coverUnavailable ? (
-            <div className="flex size-full items-center justify-center bg-brand-navy px-10">
-              <BrandLogo variant="light" priority className="w-full max-w-xl" />
+          {/* Textura CSS — leve vinheta, sem foto */}
+          <div
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,oklch(0.38_0.07_258)_0%,transparent_65%)] opacity-40"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35"
+            aria-hidden
+          />
+
+          <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md">
+            <div className={reduceMotion ? undefined : "light-sweep"}>
+              <BrandLogo variant="light" priority className="w-full" />
             </div>
-          ) : (
-            <picture>
-              <source media={DESKTOP_MQ} srcSet={coverSrcDesktop} />
-              <img
-                src={coverSrcMobile}
-                alt=""
-                className={cn(
-                  "size-full object-cover object-center transition-opacity duration-300",
-                  coverLoaded ? "opacity-100" : "opacity-0",
-                )}
-                decoding="sync"
-                loading="eager"
-                fetchPriority="high"
-                draggable={false}
-                onLoad={() => setCoverLoaded(true)}
-                onError={() => {
-                  setCoverUnavailable(true);
-                  setCoverLoaded(true);
-                }}
-              />
-            </picture>
-          )}
+          </div>
 
           <motion.div
-            className="pointer-events-none absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-black/50 via-brand-navy/25 to-transparent md:w-[18%]"
-            animate={{ opacity: isOpening ? 0.85 : 0.22 }}
-            transition={{ duration: isOpening ? 0.55 : 0.4, ease: EASE_OPEN }}
+            className="pointer-events-none absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-black/50 via-brand-navy/30 to-transparent md:w-[18%]"
+            animate={{ opacity: isOpening ? 0.9 : 0.25 }}
+            transition={{ duration: isOpening ? 0.55 : 0.35, ease: EASE_OPEN }}
           />
 
           <motion.div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
             initial={false}
             animate={
               isOpening
-                ? { opacity: [0, 0.45, 0], x: ["-30%", "55%", "110%"] }
+                ? { opacity: [0, 0.4, 0], x: ["-30%", "55%", "110%"] }
                 : { opacity: 0, x: "-30%" }
             }
-            transition={{ duration: isOpening ? 1.15 : 0.3, ease: EASE_OPEN }}
+            transition={{ duration: isOpening ? 1.15 : 0.25, ease: EASE_OPEN }}
           />
         </motion.div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const MIN_DURATION = 2000;
+const MIN_DURATION = 1600;
 
 /**
  * Hold da capa: dura no mínimo MIN_DURATION e espera o catálogo.

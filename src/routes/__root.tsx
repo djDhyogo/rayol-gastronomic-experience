@@ -101,14 +101,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "preload", href: "/menu-cover.jpg", as: "image", type: "image/jpeg", media: "(max-width: 767px)" },
-      {
-        rel: "preload",
-        href: "/menu-cover-desktop.jpg",
-        as: "image",
-        type: "image/jpeg",
-        media: "(min-width: 768px)",
-      },
     ],
   }),
 
@@ -153,9 +145,8 @@ function AppShell() {
       <OpeningTransitionProvider active={introActive}>
         <div
           className={cn(
-            "transition-opacity duration-300",
-            /* Esconde o site só no hold — na abertura a página aparece atrás da capa */
-            introActive && holdCover && "pointer-events-none opacity-0",
+            /* Sem transition-opacity — evita “animação CSS” antes da abertura */
+            introActive && holdCover && "pointer-events-none invisible",
           )}
           aria-hidden={introActive && holdCover ? true : undefined}
         >
@@ -167,12 +158,7 @@ function AppShell() {
       </OpeningTransitionProvider>
 
       {introActive ? (
-        <OpeningMenuTransition
-          hold={holdCover}
-          coverSrcMobile="/menu-cover.jpg"
-          coverSrcDesktop="/menu-cover-desktop.jpg"
-          onFinished={() => setIntroDone(true)}
-        />
+        <OpeningMenuTransition hold={holdCover} onFinished={() => setIntroDone(true)} />
       ) : null}
 
       <Toaster position="top-center" />
