@@ -1,0 +1,53 @@
+---
+description: UX/Design Rayol — identidade visual, cores, tipografia e componentes
+alwaysApply: true
+---
+
+# UX e Design — Rayol Bistrô Terra & Mar
+
+Toda UI deste app deve preservar a **mesma identidade visual**. Não inventar paleta, tipografia ou “look” novo. Fonte da verdade: `src/styles.css` + componentes existentes em `src/components/`.
+
+## Marca
+
+- Nome: **Rayol Bistrô Terra & Mar**
+- Logo: usar `BrandLogo` (`dark` / `light`) — nunca substituir por texto genérico ou logo inventada
+- Tom: bistrô elegante, terra & mar — sóbrio, acolhedor, editorial; sem estética startup/neon/dashboard
+
+## Paleta (só tokens)
+
+| Papel | Token / referência |
+|-------|--------------------|
+| Azul navy | `brand-navy` / `primary` ≈ `#0E2F5A` |
+| Marrom clay | `brand-clay` / `accent` ≈ `#6D2F1A` |
+| Creme | `brand-cream` / `background` ≈ `#F8F6F2` |
+| Branco card | `card` ≈ `#FFFFFF` |
+| Linha | `brand-line` / `border` |
+| Texto secundário | `muted-foreground` / `brand-ink` |
+
+- Preferir classes semânticas (`bg-background`, `text-foreground`, `border-border`, `text-brand-clay`, etc.)
+- **Proibido** cores soltas (`#hex`, `rgb`, purple/indigo genérico) fora dos tokens
+- Sombras: `shadow-soft` / `shadow-lift` — sem multi-shadow exagerado ou glow
+
+## Tipografia
+
+- Títulos (`h1–h4`, nomes de pratos, preços em destaque): `font-display` → Playfair Display
+- Corpo / UI: `font-sans` → Inter
+- Kicker de seção/categoria: utility `eyebrow` (uppercase, tracking largo, clay)
+- Filete ornamental: utility `rule-ornament`
+
+## Componentes e padrão
+
+- Reutilizar `src/components/ui/*` e blocos de produto/menu (`product-card`, `category-rail`, `filter-bar`, etc.) antes de criar novos
+- Cards de prato: borda leve, `bg-card`, hover sutil com `brand-clay` e `shadow-lift` — manter a mesma hierarquia (eyebrow → nome → descrição → preço)
+- Radius: sistema `--radius` (não inventar pill/`rounded-full` em massa)
+- Motion: discreto (entrada suave, respeitar `prefers-reduced-motion`); evitar animação barulhenta
+
+## Harmonia
+
+- Uma composição clara por seção; pouco ruído visual
+- Mobile-first (ver regra de cardápio): toque, legibilidade, sem overflow
+- Novos elementos devem parecer do **mesmo produto** — se parecer outro site sem a logo, está errado
+
+## Ao duvidar
+
+Abrir `src/styles.css` e espelhar um componente vizinho (ex.: `product-card.tsx`, `site-header.tsx`) em vez de redesenhar.

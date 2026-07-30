@@ -1,0 +1,29 @@
+---
+description: Prioridade mobile-first para o cardápio online Rayol
+alwaysApply: true
+---
+
+# Mobile-first — cardápio online
+
+Este projeto é um **cardápio online**. A visualização mobile é a prioridade; desktop é secundário.
+
+## Princípios
+
+- Projetar e revisar **primeiro no viewport mobile** (aprox. 375px), depois adaptar para telas maiores.
+- Todo componente de UI (layout, menu, cards, filtros, diálogos, header, footer) deve ser **pensado e compatível com mobile**.
+- Interações devem funcionar bem com **toque**: áreas clicáveis generosas, sem depender só de hover.
+- Tipografia, espaçamento e contraste devem permanecer legíveis em tela pequena, com o polegar em uso.
+- Evitar layouts que só fazem sentido em desktop (tabelas densas, sidebars fixas largas, multi-colunas apertadas) sem equivalente mobile.
+
+## Ao implementar ou alterar UI
+
+- Preferir stacking vertical, scroll natural e hierarquia clara de pratos/categorias.
+- Diálogos, sheets e drawers devem caber e ser usáveis em mobile (fechamento fácil, conteúdo scrollável).
+- Imagens de produtos não devem empurrar o conteúdo fora da tela nem travar o scroll.
+- Testar mentalmente: "dá para ler o cardápio e escolher um item só com o celular?"
+
+## Evitar
+
+- Controles minúsculos ou próximos demais para toque.
+- Funcionalidades exclusivas de hover/mouse sem alternativa touch.
+- Quebras de layout, overflow horizontal ou texto cortado em mobile.

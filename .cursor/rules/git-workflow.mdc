@@ -1,0 +1,36 @@
+---
+description: Git — branch, commit/PR sob confirmação; nunca push sem autorização
+alwaysApply: true
+---
+
+# Fluxo Git e repositório atualizado
+
+## Push
+
+- **Nunca** fazer `git push` (nem `-u`, force, ou push de tags) sem autorização explícita do usuário na conversa atual.
+- Pedir confirmação antes de enviar qualquer coisa ao remoto.
+- Criar commit ou PR **não** implica push: mesmo com PR, só enviar ao remoto se o usuário autorizar o push.
+
+## Antes de iniciar uma implementação
+
+Sempre que for começar a implementar (feature, fix, refactor, etc.), **verificar primeiro** se o repositório local está atualizado:
+
+1. Conferir branch atual e status (`git status`).
+2. Buscar o remoto (`git fetch`) e comparar com a branch de tracking / base (ex.: `main` / `master`).
+3. Se houver commits remotos que o local não tem, **avisar o usuário** e alinhar (pull/rebase ou como preferir) **antes** de editar código.
+4. Só seguir com a implementação quando o working tree estiver alinhado com o combinado (atualizado ou usuário pediu para seguir mesmo assim).
+
+## Depois de uma nova implementação
+
+Ao concluir o trabalho, **sempre**:
+
+1. Informar **em qual branch** a implementação foi feita (nome exato da branch).
+2. Perguntar se pode fazer o **commit** e/ou abrir a **PR** — não fazer nenhum dos dois sem autorização explícita.
+3. Manter o **push** fora do fluxo automático: só após pedido claro do usuário.
+
+## Não fazer
+
+- Assumir que o repo está atualizado sem checar.
+- Commit, PR ou push sem perguntar.
+- Push “por conveniência” após commit, PR ou deploy.
+- Encerrar a implementação sem dizer em qual branch o trabalho ficou.
