@@ -12,7 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteLayout } from "@/layouts/site-layout";
-import { BrandLoadingScreen } from "@/components/loading/brand-loading-screen";
+import { OpeningMenuTransition } from "@/components/loading/opening-menu-transition";
+import { OpeningTransitionProvider } from "@/components/loading/opening-transition-context";
 import { Toaster } from "@/components/ui/sonner";
 import { useCatalog } from "@/hooks/use-catalog";
 import { useBootSequence } from "@/hooks/use-boot-sequence";
@@ -128,11 +129,13 @@ function AppShell() {
 
   return (
     <>
-      <BrandLoadingScreen active={showBootScreen} />
-      <SiteLayout>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </SiteLayout>
+      <OpeningTransitionProvider active={showBootScreen}>
+        <SiteLayout>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </SiteLayout>
+      </OpeningTransitionProvider>
+      <OpeningMenuTransition active={showBootScreen} coverSrc="/menu-cover.png" />
       <Toaster position="top-center" />
     </>
   );
@@ -147,4 +150,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

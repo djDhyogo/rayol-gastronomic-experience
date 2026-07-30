@@ -7,18 +7,29 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
   index?: number;
   compact?: boolean;
+  disableEntranceAnimation?: boolean;
 }
 
-export function ProductCard({ product, onSelect, index = 0, compact = false }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onSelect,
+  index = 0,
+  compact = false,
+  disableEntranceAnimation = false,
+}: ProductCardProps) {
   const reduceMotion = useReducedMotion();
   const initial = product.name.trim().charAt(0).toLocaleUpperCase("pt-BR");
 
   return (
     <motion.article
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.24), ease: [0.16, 1, 0.3, 1] }}
+      initial={disableEntranceAnimation || reduceMotion ? false : { opacity: 0, y: 12 }}
+      whileInView={disableEntranceAnimation || reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={disableEntranceAnimation ? undefined : { once: true, margin: "-40px" }}
+      transition={
+        disableEntranceAnimation
+          ? undefined
+          : { duration: 0.45, delay: Math.min(index * 0.04, 0.24), ease: [0.16, 1, 0.3, 1] }
+      }
       className={cn("h-full", compact && "w-64 shrink-0 sm:w-72")}
     >
       <button
