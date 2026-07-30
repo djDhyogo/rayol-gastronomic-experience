@@ -1,0 +1,216 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/*
+ * Design system — Rayol Bistrô Terra & Mar
+ * Paleta: creme #F8F6F2 / branco #FFFFFF / azul #0E2F5A / marrom #6D2F1A
+ * Tipografia: Playfair Display (títulos) + Inter (texto)
+ * Todas as cores em oklch e expostas como tokens semânticos.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-clay: var(--brand-clay);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-line: var(--brand-line);
+  --color-brand-ink: var(--brand-ink);
+
+  --shadow-soft: 0 1px 2px oklch(0.31 0.077 258 / 0.04), 0 12px 32px -18px oklch(0.31 0.077 258 / 0.28);
+  --shadow-lift: 0 2px 4px oklch(0.31 0.077 258 / 0.06), 0 24px 48px -24px oklch(0.31 0.077 258 / 0.35);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  --brand-navy: oklch(0.313 0.077 258.4);
+  --brand-clay: oklch(0.385 0.096 43.5);
+  --brand-cream: oklch(0.972 0.006 84.6);
+  --brand-line: oklch(0.916 0 0);
+  --brand-ink: oklch(0.452 0 0);
+
+  --background: oklch(0.972 0.006 84.6);
+  --foreground: oklch(0.313 0.077 258.4);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.313 0.077 258.4);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.313 0.077 258.4);
+  --primary: oklch(0.313 0.077 258.4);
+  --primary-foreground: oklch(0.985 0.004 84.6);
+  --secondary: oklch(0.955 0.008 84.6);
+  --secondary-foreground: oklch(0.313 0.077 258.4);
+  --muted: oklch(0.955 0.008 84.6);
+  --muted-foreground: oklch(0.452 0 0);
+  --accent: oklch(0.385 0.096 43.5);
+  --accent-foreground: oklch(0.985 0.004 84.6);
+  --destructive: oklch(0.505 0.19 27.3);
+  --destructive-foreground: oklch(0.985 0.004 84.6);
+  --border: oklch(0.916 0 0);
+  --input: oklch(0.916 0 0);
+  --ring: oklch(0.385 0.096 43.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-clay);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* Eyebrow / kicker refinado usado nas seções editoriais */
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-brand-clay);
+}
+
+/* Filete ornamental da marca */
+@utility rule-ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-brand-line);
+
+  &::before,
+  &::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: currentColor;
+  }
+}
+
+/* Trilho horizontal sem barra de rolagem visível */
+@utility scroll-rail {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Brilho metálico atravessando a assinatura da logo */
+@utility light-sweep {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translate3d(-120%, 0, 0);
+    background: linear-gradient(
+      100deg,
+      transparent 35%,
+      oklch(1 0 0 / 0.85) 50%,
+      transparent 65%
+    );
+    mix-blend-mode: overlay;
+    animation: sweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s infinite;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  60%,
+  100% {
+    transform: translate3d(120%, 0, 0);
+  }
+}
+
+@utility shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.955 0.008 84.6) 25%,
+    oklch(0.978 0.005 84.6) 37%,
+    oklch(0.955 0.008 84.6) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
