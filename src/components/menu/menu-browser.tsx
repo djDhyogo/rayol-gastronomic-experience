@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ProductCard } from "@/components/cards/product-card";
 import { CategoryRail } from "@/components/menu/category-rail";
 import { FilterBar } from "@/components/menu/filter-bar";
 import { SearchField } from "@/components/menu/search-field";
 import { ProductDialog } from "@/components/menu/product-dialog";
+import {
+  ListView,
+  ViewModeToggle,
+  type MenuViewMode,
+} from "@/components/menu/list-view";
 import { StateMessage } from "@/components/common/state-message";
 import { CategoryRailSkeleton, ProductGridSkeleton } from "@/components/loading/skeletons";
 import { useCatalog } from "@/hooks/use-catalog";
@@ -25,6 +31,8 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
   const { data, isPending, isError, refetch } = useCatalog();
   const [filters, setFilters] = useState<MenuFilters>(defaultFilters);
   const [selected, setSelected] = useState<Product | null>(null);
+  const [viewMode, setViewMode] = useState<MenuViewMode>("cards");
+  const reduceMotion = useReducedMotion();
 
   const activeFilters: MenuFilters = { ...filters, categorySlug: categorySlug ?? null };
   const products = useFilteredProducts(data?.products, activeFilters);
@@ -60,7 +68,12 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
           <CategoryRail categories={data?.categories ?? []} activeSlug={categorySlug ?? null} />
         )}
         {!isPending && data ? (
-          <FilterBar filters={activeFilters} onChange={patch} bounds={bounds} />
+          <>
+            <FilterBar filters={activeFilters} onChange={patch} bounds={bounds} />
+            <div className="flex justify-end">
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            </div>
+          </>
         ) : null}
       </div>
 
@@ -88,40 +101,54 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
         ) : null}
 
         {!isPending && !isError && products.length > 0 ? (
-          <div className="space-y-16">
-            {groups.map((group) => (
-              <section key={group.slug} aria-labelledby={`grupo-${group.slug}`}>
-                <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3">
-                  <h2
-                    id={`grupo-${group.slug}`}
-                    className="font-display text-2xl text-foreground sm:text-3xl"
-                  >
-                    {group.name}
-                  </h2>
-                  {!categorySlug ? (
-                    <Link
-                      to="/menu/$categoria"
-                      params={{ categoria: group.slug }}
-                      className="shrink-0 text-[0.62rem] tracking-[0.18em] text-brand-clay uppercase underline-offset-4 hover:underline"
-                    >
-                      Ver categoria
-                    </Link>
-                  ) : (
-                    <span className="shrink-0 text-[0.62rem] tracking-[0.18em] text-muted-foreground uppercase">
-                      {group.products.length} itens
-                    </span>
-                  )}
-                </div>
-                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.products.map((product, index) => (
-                    <li key={product.id}>
-                      <ProductCard product={product} index={index} onSelect={setSelected} />
-                    </li>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={viewMode}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {viewMode === "cards" ? (
+                <div className="space-y-16">
+                  {groups.map((group) => (
+                    <section key={group.slug} aria-labelledby={`grupo-${group.slug}`}>
+                      <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3">
+                        <h2
+                          id={`grupo-${group.slug}`}
+                          className="font-display text-2xl text-foreground sm:text-3xl"
+                        >
+                          {group.name}
+                        </h2>
+                        {!categorySlug ? (
+                          <Link
+                            to="/menu/$categoria"
+                            params={{ categoria: group.slug }}
+                            className="shrink-0 text-[0.62rem] tracking-[0.18em] text-brand-clay uppercase underline-offset-4 hover:underline"
+                          >
+                            Ver categoria
+                          </Link>
+                        ) : (
+                          <span className="shrink-0 text-[0.62rem] tracking-[0.18em] text-muted-foreground uppercase">
+                            {group.products.length} itens
+                          </span>
+                        )}
+                      </div>
+                      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.products.map((product, index) => (
+                          <li key={product.id}>
+                            <ProductCard product={product} index={index} onSelect={setSelected} />
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
-              </section>
-            ))}
-          </div>
+                </div>
+              ) : (
+                <ListView groups={groups} onSelect={setSelected} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         ) : null}
       </div>
 
