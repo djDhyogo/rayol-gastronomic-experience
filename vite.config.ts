@@ -13,6 +13,10 @@ const baseConfig = defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    // Default local/Lovable: Cloudflare. CI/scripts override via NITRO_PRESET.
+    preset: process.env.NITRO_PRESET || "cloudflare-module",
+  },
 });
 
 export default async (env: Parameters<typeof baseConfig>[0]) => {
