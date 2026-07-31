@@ -53,7 +53,7 @@ function HomePage() {
 
   return (
     <>
-      <section className="relative isolate min-h-[calc(100dvh-4.25rem)] overflow-hidden">
+      <section className="relative isolate -mt-[4.25rem] min-h-dvh overflow-hidden">
         <img
           src={heroImage}
           alt="Prato de frutos do mar servido no Rayol Bistrô Terra & Mar"
@@ -62,7 +62,7 @@ function HomePage() {
         />
         <div className="absolute inset-0 -z-10 bg-brand-navy/70" />
 
-        <div className="mx-auto flex min-h-[calc(100dvh-4.25rem)] max-w-6xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24 md:items-start md:text-left">
+        <div className="mx-auto flex min-h-dvh max-w-6xl flex-col items-center justify-center px-4 pt-[4.25rem] pb-16 text-center sm:px-6 sm:pb-24 md:items-start md:text-left">
           <BrandLogo variant="light" priority className="w-52 sm:w-72" />
           <h1 className="mt-10 max-w-2xl font-display text-4xl leading-[1.05] text-background sm:text-6xl">
             Cozinha terra e mar

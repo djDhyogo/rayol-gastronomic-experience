@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteLayout } from "@/layouts/site-layout";
 import { OpeningMenuTransition } from "@/components/loading/opening-menu-transition";
+import { OpeningTransitionProvider } from "@/components/loading/opening-transition-context";
 import { Toaster } from "@/components/ui/sonner";
 import { useCatalog } from "@/hooks/use-catalog";
 import { useBootSequence } from "@/hooks/use-boot-sequence";
@@ -141,18 +142,20 @@ function AppShell() {
 
   return (
     <>
-      <div
-        className={cn(
-          /* Sem transition-opacity — evita “animação CSS” antes da abertura */
-          introActive && holdCover && "pointer-events-none invisible",
-        )}
-        aria-hidden={introActive && holdCover ? true : undefined}
-      >
-        <SiteLayout>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </SiteLayout>
-      </div>
+      <OpeningTransitionProvider active={introActive}>
+        <div
+          className={cn(
+            /* Sem transition-opacity — evita “animação CSS” antes da abertura */
+            introActive && holdCover && "pointer-events-none invisible",
+          )}
+          aria-hidden={introActive && holdCover ? true : undefined}
+        >
+          <SiteLayout>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </SiteLayout>
+        </div>
+      </OpeningTransitionProvider>
 
       {introActive ? (
         <OpeningMenuTransition hold={holdCover} onFinished={() => setIntroDone(true)} />
