@@ -9,9 +9,9 @@ interface OpeningMenuTransitionProps {
   onFinished?: () => void;
 }
 
-/** Ritmo quase constante, com leve desaceleração apenas no fim do curso. */
-const OPEN_MS = 20000;
-const EASE_OPEN = [0.25, 0.25, 0.35, 1] as const;
+/** Arranque suave no desprender do canto, depois ritmo constante até o fim. */
+const OPEN_MS = 1800;
+const EASE_OPEN = [0.3, 0, 0.7, 0.7] as const;
 const MESSAGE = "Preparando uma experiência gastronômica...";
 /** O canto agarrado viaja até além da borda esquerda → a folha sai de cena. */
 const CORNER_TRAVEL_X = 2.15;
@@ -165,7 +165,6 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
   }, []);
 
   useEffect(() => {
-    console.log("[intro] effect", { hold, reduceMotion, t: performance.now() });
     if (hold) {
       openingStarted.current = false;
       finishedRef.current = false;
@@ -185,7 +184,6 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
       return;
     }
 
-    console.log("[intro] opening start", performance.now());
     setPhase("opening");
     const controls = animate(progress, 1, {
       duration: OPEN_MS / 1000,
@@ -193,7 +191,6 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     });
 
     const timer = window.setTimeout(() => {
-      console.log("[intro] timer fired", performance.now());
       if (!finishedRef.current) {
         finishedRef.current = true;
         onFinished?.();
@@ -201,7 +198,6 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     }, OPEN_MS);
 
     return () => {
-      console.log("[intro] effect cleanup", performance.now());
       controls.stop();
       window.clearTimeout(timer);
     };
@@ -210,9 +206,7 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
 
   const isOpening = phase === "opening";
 
-  const fold = useTransform(progress, (p) =>
-    computeFold(p, sizeRef.current.w, sizeRef.current.h),
-  );
+  const fold = useTransform(progress, (p) => computeFold(p, sizeRef.current.w, sizeRef.current.h));
   const clipFront = useTransform(fold, (f) => f.clipFront);
   const clipFlap = useTransform(fold, (f) => f.clipFlap);
   const flapTransform = useTransform(fold, (f) => f.flapTransform);
