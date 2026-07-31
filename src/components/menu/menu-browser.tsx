@@ -9,7 +9,7 @@ import { ProductDialog } from "@/components/menu/product-dialog";
 import {
   ListView,
   ViewModeToggle,
-  type MenuViewMode,
+  useMenuViewMode,
 } from "@/components/menu/list-view";
 import { StateMessage } from "@/components/common/state-message";
 import { CategoryRailSkeleton, ProductGridSkeleton } from "@/components/loading/skeletons";
@@ -31,7 +31,7 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
   const { data, isPending, isError, refetch } = useCatalog();
   const [filters, setFilters] = useState<MenuFilters>(defaultFilters);
   const [selected, setSelected] = useState<Product | null>(null);
-  const [viewMode, setViewMode] = useState<MenuViewMode>("cards");
+  const [viewMode, setViewMode] = useMenuViewMode();
   const reduceMotion = useReducedMotion();
 
   const activeFilters: MenuFilters = { ...filters, categorySlug: categorySlug ?? null };
