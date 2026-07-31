@@ -6,7 +6,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      {/* Header é overlay fixo (h-4.25rem) — o padding compensa; a home anula com -mt para o hero correr por baixo */}
+      <main className="flex-1 pt-[4.25rem]">{children}</main>
       <SiteFooter />
     </div>
   );

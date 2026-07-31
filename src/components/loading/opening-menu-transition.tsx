@@ -13,10 +13,17 @@ interface OpeningMenuTransitionProps {
 const OPEN_MS = 1800;
 const EASE_OPEN = [0.3, 0, 0.7, 0.7] as const;
 const MESSAGE = "Preparando uma experiência gastronômica...";
+const SWIPE_HINT = "Deslize para abrir";
 /** O canto agarrado viaja até além da borda esquerda → a folha sai de cena. */
 const CORNER_TRAVEL_X = 2.15;
 /** Elevação do canto no meio do curso — mantém a dobra diagonal e curva. */
 const CORNER_LIFT_Y = 0.55;
+/** Estado 2: quanto da abertura acontece automaticamente antes de aguardar. */
+const PEEK_PROGRESS = 0.14;
+const PEEK_LOW = 0.1;
+const PEEK_IN_MS = 900;
+/** Estado 3: tempo máximo aguardando o usuário antes de continuar sozinho. */
+const WAIT_MS = 5000;
 
 function CoverFace({ sweep }: { sweep: boolean }) {
   return (
@@ -140,18 +147,25 @@ function computeFold(p: number, w: number, h: number): Fold {
   };
 }
 
+type Phase = "hold" | "peek" | "opening";
+
 /**
- * Capa de cardápio abrindo como página real (page curl):
- * o canto inferior-direito se desprende, a folha dobra sobre si mesma
- * mostrando o verso, a linha de dobra varre a página em diagonal ficando
- * vertical, e a folha sai pela esquerda — o conteúdo abaixo fica imóvel.
+ * Capa de cardápio abrindo como página real (page curl), em 4 estados:
+ * 1. hold — capa fechada enquanto o catálogo carrega;
+ * 2. peek — o canto inferior-direito se ergue sozinho e fica "respirando";
+ * 3. espera — surge "Deslize para abrir"; toque/deslize (ou 5s) continua;
+ * 4. opening — a folha dobra sobre si mesma mostrando o verso e sai pela
+ *    esquerda — o conteúdo abaixo permanece imóvel o tempo todo.
  */
 export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitionProps) {
   const reduceMotion = useReducedMotion();
-  const [phase, setPhase] = useState<"hold" | "opening">("hold");
+  const [phase, setPhase] = useState<Phase>("hold");
+  const phaseRef = useRef<Phase>("hold");
   const openingStarted = useRef(false);
   const finishedRef = useRef(false);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const controlsRef = useRef<ReturnType<typeof animate> | null>(null);
+  const waitTimerRef = useRef<number | null>(null);
 
   const progress = useMotionValue(0);
 
@@ -164,12 +178,46 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     return () => window.removeEventListener("resize", measure);
   }, []);
 
+  const setPhaseSynced = (next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
+
+  const finish = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onFinished?.();
+  };
+
+  const clearWaitTimer = () => {
+    if (waitTimerRef.current !== null) {
+      window.clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  };
+
+  /** Estado 4: retoma de onde o peek parou e completa o curso em ritmo constante. */
+  const continueOpening = () => {
+    if (phaseRef.current !== "peek") return;
+    setPhaseSynced("opening");
+    clearWaitTimer();
+    controlsRef.current?.stop();
+    const start = progress.get();
+    controlsRef.current = animate(progress, 1, {
+      duration: (OPEN_MS / 1000) * (1 - start),
+      ease: EASE_OPEN,
+      onComplete: finish,
+    });
+  };
+
   useEffect(() => {
     if (hold) {
       openingStarted.current = false;
       finishedRef.current = false;
+      controlsRef.current?.stop();
+      clearWaitTimer();
       progress.set(0);
-      setPhase("hold");
+      setPhaseSynced("hold");
       return;
     }
 
@@ -177,34 +225,38 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     openingStarted.current = true;
 
     if (reduceMotion) {
-      if (!finishedRef.current) {
-        finishedRef.current = true;
-        onFinished?.();
-      }
+      finish();
       return;
     }
 
-    setPhase("opening");
-    const controls = animate(progress, 1, {
-      duration: OPEN_MS / 1000,
-      ease: EASE_OPEN,
+    // Estado 2: início automático da abertura — o canto se desprende sozinho
+    setPhaseSynced("peek");
+    controlsRef.current = animate(progress, PEEK_PROGRESS, {
+      duration: PEEK_IN_MS / 1000,
+      ease: [0.3, 0, 0.55, 1],
+      onComplete: () => {
+        if (phaseRef.current !== "peek") return;
+        // Respiração sutil do canto enquanto aguarda — papel vivo, convite ao toque
+        controlsRef.current = animate(progress, [PEEK_PROGRESS, PEEK_LOW, PEEK_PROGRESS], {
+          duration: 2.6,
+          ease: "easeInOut",
+          repeat: Infinity,
+        });
+      },
     });
 
-    const timer = window.setTimeout(() => {
-      if (!finishedRef.current) {
-        finishedRef.current = true;
-        onFinished?.();
-      }
-    }, OPEN_MS);
+    // Estado 3: aguarda interação; sem toque em 5s, continua sozinho
+    waitTimerRef.current = window.setTimeout(continueOpening, WAIT_MS);
 
     return () => {
-      controls.stop();
-      window.clearTimeout(timer);
+      controlsRef.current?.stop();
+      clearWaitTimer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hold, reduceMotion]);
 
-  const isOpening = phase === "opening";
+  const isPeek = phase === "peek";
+  const isRevealed = phase !== "hold";
 
   const fold = useTransform(progress, (p) => computeFold(p, sizeRef.current.w, sizeRef.current.h));
   const clipFront = useTransform(fold, (f) => f.clipFront);
@@ -228,23 +280,33 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     <div
       className={cn(
         "fixed inset-0 z-[120]",
-        isOpening
-          ? "pointer-events-none overflow-visible bg-transparent"
-          : "overflow-hidden bg-background",
+        phase === "hold" && "overflow-hidden bg-background",
+        isPeek && "cursor-pointer overflow-visible bg-transparent select-none",
+        phase === "opening" && "pointer-events-none overflow-visible bg-transparent",
       )}
-      aria-hidden={!hold}
-      role={hold ? "status" : undefined}
-      aria-live={hold ? "polite" : undefined}
+      aria-hidden={phase === "opening" ? true : undefined}
+      role={phase === "hold" ? "status" : isPeek ? "button" : undefined}
+      aria-live={phase === "hold" ? "polite" : undefined}
+      aria-label={isPeek ? SWIPE_HINT : undefined}
+      tabIndex={isPeek ? 0 : undefined}
+      onPointerUp={isPeek ? continueOpening : undefined}
+      onKeyDown={
+        isPeek
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") continueOpening();
+            }
+          : undefined
+      }
     >
       {/* Frente da capa — encolhe conforme a linha de dobra varre a página */}
       <motion.div
         className="absolute inset-0 z-[1] bg-background"
-        style={{ clipPath: isOpening ? clipFront : undefined }}
+        style={{ clipPath: isRevealed ? clipFront : undefined }}
       >
-        <CoverFace sweep={!reduceMotion && !isOpening} />
+        <CoverFace sweep={!reduceMotion && phase === "hold"} />
 
         {/* Sombra projetada pela folha erguida — acompanha a dobra e some */}
-        {isOpening ? (
+        {isRevealed ? (
           <motion.div
             className="pointer-events-none absolute inset-0"
             style={{ background: frontShade, opacity: frontShadeOpacity }}
@@ -254,7 +316,7 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
       </motion.div>
 
       {/* Aba dobrada — o verso da mesma folha, espelhado na linha de dobra */}
-      {isOpening ? (
+      {isRevealed ? (
         <motion.div
           className="absolute inset-0 z-[2] will-change-transform"
           style={{
@@ -293,6 +355,19 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
             }}
           />
         </motion.div>
+      ) : null}
+
+      {/* Estado 3: convite discreto — some assim que a abertura continua */}
+      {isRevealed ? (
+        <motion.p
+          className="pointer-events-none absolute bottom-16 left-1/2 z-[3] -translate-x-1/2 text-[0.65rem] tracking-[0.24em] whitespace-nowrap text-muted-foreground uppercase"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isPeek ? 1 : 0 }}
+          transition={{ duration: isPeek ? 0.6 : 0.2, delay: isPeek ? 0.4 : 0 }}
+          aria-hidden="true"
+        >
+          {SWIPE_HINT}
+        </motion.p>
       ) : null}
     </div>
   );
