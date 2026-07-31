@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import heroImage from "@/assets/hero-terra-mar.jpg";
 import interiorImage from "@/assets/interior-bistro.jpg";
@@ -7,7 +6,6 @@ import { BrandLogo } from "@/components/common/brand-logo";
 import { ProductCard } from "@/components/cards/product-card";
 import { ProductDialog } from "@/components/menu/product-dialog";
 import { ProductGridSkeleton } from "@/components/loading/skeletons";
-import { useOpeningTransitionActive } from "@/components/loading/opening-transition-context";
 import { useCatalog } from "@/hooks/use-catalog";
 import { useHighlights } from "@/hooks/use-highlights";
 import { RESTAURANT } from "@/constants/restaurant";
@@ -49,9 +47,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const reduceMotion = useReducedMotion();
   const { data, isPending } = useCatalog();
-  const openingTransitionActive = useOpeningTransitionActive();
   const highlights = useHighlights(data);
   const [selected, setSelected] = useState<Product | null>(null);
 
@@ -69,7 +65,7 @@ function HomePage() {
         <div className="mx-auto flex min-h-[calc(100dvh-4.25rem)] max-w-6xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24 md:items-start md:text-left">
           <BrandLogo variant="light" priority className="w-52 sm:w-72" />
           <h1 className="mt-10 max-w-2xl font-display text-4xl leading-[1.05] text-background sm:text-6xl">
-            Cozinha de terra e mar
+            Cozinha terra e mar
           </h1>
           <p className="mt-6 max-w-lg text-sm leading-relaxed text-background/80 sm:text-base">
             {RESTAURANT.shortDescription} Explore o cardápio completo, com preços sempre
@@ -89,35 +85,9 @@ function HomePage() {
         {isPending ? (
           <ProductGridSkeleton count={3} />
         ) : (
-          <motion.div
-            className="space-y-20"
-            initial={false}
-            animate={openingTransitionActive ? "hidden" : "visible"}
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: {
-                  duration: reduceMotion ? 0.01 : 0.32,
-                  ease: [0.16, 1, 0.3, 1],
-                  staggerChildren: reduceMotion ? 0 : 0.09,
-                  delayChildren: reduceMotion ? 0 : 0.08,
-                },
-              },
-            }}
-          >
+          <div className="space-y-20">
             {highlights.map((highlight) => (
-              <motion.div
-                key={highlight.id}
-                variants={{
-                  hidden: { opacity: 0, y: reduceMotion ? 0 : 10 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: { duration: reduceMotion ? 0.01 : 0.42, ease: [0.16, 1, 0.3, 1] },
-                  },
-                }}
-              >
+              <div key={highlight.id}>
                 <div className="flex items-end justify-between gap-6">
                   <div>
                     <p className="eyebrow">{highlight.subtitle}</p>
@@ -132,36 +102,9 @@ function HomePage() {
                     Ver tudo
                   </Link>
                 </div>
-                <motion.ul
-                  className="scroll-rail mt-8 -mx-4 flex gap-4 px-4 pb-2"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: {
-                      opacity: 1,
-                      transition: {
-                        duration: reduceMotion ? 0.01 : 0.3,
-                        staggerChildren: reduceMotion ? 0 : 0.06,
-                        delayChildren: reduceMotion ? 0 : 0.05,
-                      },
-                    },
-                  }}
-                >
+                <ul className="scroll-rail mt-8 -mx-4 flex gap-4 px-4 pb-2">
                   {highlight.products.map((product, index) => (
-                    <motion.li
-                      key={product.id}
-                      className="flex"
-                      variants={{
-                        hidden: { opacity: 0, y: reduceMotion ? 0 : 8 },
-                        visible: {
-                          opacity: 1,
-                          y: 0,
-                          transition: {
-                            duration: reduceMotion ? 0.01 : 0.35,
-                            ease: [0.16, 1, 0.3, 1],
-                          },
-                        },
-                      }}
-                    >
+                    <li key={product.id} className="flex">
                       <ProductCard
                         product={product}
                         index={index}
@@ -169,12 +112,12 @@ function HomePage() {
                         disableEntranceAnimation
                         onSelect={setSelected}
                       />
-                    </motion.li>
+                    </li>
                   ))}
-                </motion.ul>
-              </motion.div>
+                </ul>
+              </div>
             ))}
-          </motion.div>
+          </div>
         )}
       </section>
 
