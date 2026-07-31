@@ -9,54 +9,163 @@ interface OpeningMenuTransitionProps {
   onFinished?: () => void;
 }
 
-/** Ritmo quase constante, com leve desaceleração no fim. */
-const OPEN_MS = 1550;
-const EASE_OPEN = [0.0, 0.0, 0.18, 1] as const;
+/** Ritmo quase constante, com leve desaceleração apenas no fim do curso. */
+const OPEN_MS = 20000;
+const EASE_OPEN = [0.25, 0.25, 0.35, 1] as const;
 const MESSAGE = "Preparando uma experiência gastronômica...";
-/** Abertura da capa em torno do eixo esquerdo (sem translateX). */
-const OPEN_ANGLE = -112;
+/** O canto agarrado viaja até além da borda esquerda → a folha sai de cena. */
+const CORNER_TRAVEL_X = 2.15;
+/** Elevação do canto no meio do curso — mantém a dobra diagonal e curva. */
+const CORNER_LIFT_Y = 0.55;
 
 function CoverFace({ sweep }: { sweep: boolean }) {
   return (
-    <div className="relative flex w-full max-w-xs flex-col items-center sm:max-w-sm md:max-w-md">
-      <div className={sweep ? "light-sweep" : undefined}>
-        <BrandLogo variant="dark" priority className="w-full" />
-      </div>
-
-      <div className="mt-12 w-40 overflow-hidden sm:w-52" aria-hidden="true">
-        <div className="h-px w-full bg-border">
-          <motion.div
-            className="h-px bg-brand-clay"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{
-              duration: sweep ? 1.55 : 0.2,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          />
+    <div className="relative flex h-full w-full flex-col items-center justify-center px-8">
+      <div className="relative flex w-full max-w-xs flex-col items-center sm:max-w-sm md:max-w-md">
+        <div className={sweep ? "light-sweep" : undefined}>
+          <BrandLogo variant="dark" priority className="w-full" />
         </div>
-      </div>
 
-      <p className="mt-6 text-center text-[0.7rem] tracking-[0.22em] text-muted-foreground uppercase">
-        {MESSAGE}
-      </p>
+        <div className="mt-12 w-40 overflow-hidden sm:w-52" aria-hidden="true">
+          <div className="h-px w-full bg-border">
+            <motion.div
+              className="h-px bg-brand-clay"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{
+                duration: sweep ? 1.55 : 0.2,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+            />
+          </div>
+        </div>
+
+        <p className="mt-6 text-center text-[0.7rem] tracking-[0.22em] text-muted-foreground uppercase">
+          {MESSAGE}
+        </p>
+      </div>
     </div>
   );
 }
 
+type Point = readonly [number, number];
+
+/** Recorta o retângulo da página por um semiplano (Sutherland–Hodgman, 1 aresta). */
+function clipRectByHalfPlane(w: number, h: number, sd: (x: number, y: number) => number) {
+  const rect: Point[] = [
+    [0, 0],
+    [w, 0],
+    [w, h],
+    [0, h],
+  ];
+  const out: Point[] = [];
+  for (let i = 0; i < rect.length; i++) {
+    const cur = rect[i];
+    const nxt = rect[(i + 1) % rect.length];
+    const sc = sd(cur[0], cur[1]);
+    const sn = sd(nxt[0], nxt[1]);
+    if (sc >= 0) out.push(cur);
+    if (sc >= 0 !== sn >= 0) {
+      const t = sc / (sc - sn);
+      out.push([cur[0] + t * (nxt[0] - cur[0]), cur[1] + t * (nxt[1] - cur[1])]);
+    }
+  }
+  return out;
+}
+
+function toClipPath(points: Point[]) {
+  if (points.length < 3) return "polygon(0px 0px, 0px 0px, 0px 0px)";
+  return `polygon(${points.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ")})`;
+}
+
+interface Fold {
+  /** Parte da capa ainda plana (frente visível). */
+  clipFront: string;
+  /** Região dobrada, em coordenadas da página (antes do espelhamento). */
+  clipFlap: string;
+  /** Espelhamento da região dobrada em torno da linha de dobra. */
+  flapTransform: string;
+  /** Ponto médio da dobra — ancora sombras e brilho. */
+  mx: number;
+  my: number;
+}
+
 /**
- * Uma única folha-capa: eixo na esquerda, abre da direita → esquerda.
- * Sem faixas, sem segunda página, sem deslize horizontal.
+ * Física do page curl: o canto inferior-direito (w, h) é "agarrado" e viaja
+ * para a esquerda subindo no meio do curso. A linha de dobra é a mediatriz
+ * entre o canto original e sua posição atual; a parte dobrada é o reflexo
+ * da página em torno dessa linha — o verso fica visível por cima, como uma
+ * página real virando.
+ */
+function computeFold(p: number, w: number, h: number): Fold {
+  const fullFront = `polygon(0px 0px, ${w}px 0px, ${w}px ${h}px, 0px ${h}px)`;
+  const cx = w - CORNER_TRAVEL_X * w * p;
+  const cy = h - CORNER_LIFT_Y * h * Math.sin(Math.PI * p);
+  const dx = cx - w;
+  const dy = cy - h;
+  const len = Math.hypot(dx, dy);
+  if (len < 1 || w === 0) {
+    return {
+      clipFront: fullFront,
+      clipFlap: "polygon(0px 0px, 0px 0px, 0px 0px)",
+      flapTransform: "none",
+      mx: w,
+      my: h,
+    };
+  }
+
+  // Normal da dobra apontando para o lado que dobra (lado do canto original).
+  const nx = -dx / len;
+  const ny = -dy / len;
+  const mx = (w + cx) / 2;
+  const my = (h + cy) / 2;
+  const sd = (x: number, y: number) => (x - mx) * nx + (y - my) * ny;
+
+  const front = clipRectByHalfPlane(w, h, (x, y) => -sd(x, y));
+  const flap = clipRectByHalfPlane(w, h, sd);
+
+  // Matriz de reflexão em torno da linha de dobra (transform-origin 0 0).
+  const a = 1 - 2 * nx * nx;
+  const b = -2 * nx * ny;
+  const d = 1 - 2 * ny * ny;
+  const e = mx - (a * mx + b * my);
+  const f = my - (b * mx + d * my);
+
+  return {
+    clipFront: toClipPath(front),
+    clipFlap: toClipPath(flap),
+    flapTransform: `matrix(${a.toFixed(5)}, ${b.toFixed(5)}, ${b.toFixed(5)}, ${d.toFixed(5)}, ${e.toFixed(2)}, ${f.toFixed(2)})`,
+    mx,
+    my,
+  };
+}
+
+/**
+ * Capa de cardápio abrindo como página real (page curl):
+ * o canto inferior-direito se desprende, a folha dobra sobre si mesma
+ * mostrando o verso, a linha de dobra varre a página em diagonal ficando
+ * vertical, e a folha sai pela esquerda — o conteúdo abaixo fica imóvel.
  */
 export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitionProps) {
   const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState<"hold" | "opening">("hold");
   const openingStarted = useRef(false);
   const finishedRef = useRef(false);
+  const sizeRef = useRef({ w: 0, h: 0 });
 
   const progress = useMotionValue(0);
 
   useEffect(() => {
+    const measure = () => {
+      sizeRef.current = { w: window.innerWidth, h: window.innerHeight };
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  useEffect(() => {
+    console.log("[intro] effect", { hold, reduceMotion, t: performance.now() });
     if (hold) {
       openingStarted.current = false;
       finishedRef.current = false;
@@ -76,6 +185,7 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
       return;
     }
 
+    console.log("[intro] opening start", performance.now());
     setPhase("opening");
     const controls = animate(progress, 1, {
       duration: OPEN_MS / 1000,
@@ -83,6 +193,7 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     });
 
     const timer = window.setTimeout(() => {
+      console.log("[intro] timer fired", performance.now());
       if (!finishedRef.current) {
         finishedRef.current = true;
         onFinished?.();
@@ -90,6 +201,7 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     }, OPEN_MS);
 
     return () => {
+      console.log("[intro] effect cleanup", performance.now());
       controls.stop();
       window.clearTimeout(timer);
     };
@@ -98,15 +210,25 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
 
   const isOpening = phase === "opening";
 
-  const leafRotate = useTransform(progress, (p) => OPEN_ANGLE * p);
-  const shadowRotate = useTransform(progress, (p) => OPEN_ANGLE * 0.42 * p);
-  const shadowOpacity = useTransform(progress, [0, 0.1, 0.55, 0.9, 1], [0, 0.38, 0.45, 0.18, 0]);
+  const fold = useTransform(progress, (p) =>
+    computeFold(p, sizeRef.current.w, sizeRef.current.h),
+  );
+  const clipFront = useTransform(fold, (f) => f.clipFront);
+  const clipFlap = useTransform(fold, (f) => f.clipFlap);
+  const flapTransform = useTransform(fold, (f) => f.flapTransform);
 
-  /** Curvatura visual na borda direita (início do desprendimento) — mesma folha. */
-  const curlGlow = useTransform(progress, [0, 0.08, 0.35, 0.7, 1], [0, 0.55, 0.4, 0.15, 0]);
-  const faceShade = useTransform(progress, [0, 0.25, 0.6, 1], [0, 0.12, 0.28, 0.08]);
-  const spineOpacity = useTransform(progress, [0, 0.1, 0.7, 1], [0.2, 0.75, 0.5, 0]);
-  const edgeThickness = useTransform(progress, [0, 0.15, 0.85, 1], [0.3, 1, 0.7, 0]);
+  /** Sombra da folha erguida sobre a parte ainda plana da capa. */
+  const frontShade = useTransform(fold, (f) => {
+    const r = Math.max(sizeRef.current.w, sizeRef.current.h) * 0.55;
+    return `radial-gradient(circle ${r.toFixed(0)}px at ${f.mx.toFixed(0)}px ${f.my.toFixed(0)}px, color-mix(in oklab, var(--color-brand-navy) 26%, transparent), transparent 72%)`;
+  });
+  const frontShadeOpacity = useTransform(progress, [0, 0.06, 0.8, 1], [0, 0.55, 0.4, 0]);
+
+  /** Brilho na dobra do verso — luz pegando na curvatura do papel. */
+  const flapSheen = useTransform(fold, (f) => {
+    const r = Math.max(sizeRef.current.w, sizeRef.current.h) * 0.5;
+    return `radial-gradient(circle ${r.toFixed(0)}px at ${f.mx.toFixed(0)}px ${f.my.toFixed(0)}px, oklch(1 0 0 / 0.55), transparent 62%)`;
+  });
 
   return (
     <div
@@ -120,108 +242,64 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
       role={hold ? "status" : undefined}
       aria-live={hold ? "polite" : undefined}
     >
-      <div
-        className="relative size-full"
-        style={{
-          perspective: "1700px",
-          perspectiveOrigin: "left center",
-        }}
+      {/* Frente da capa — encolhe conforme a linha de dobra varre a página */}
+      <motion.div
+        className="absolute inset-0 z-[1] bg-background"
+        style={{ clipPath: isOpening ? clipFront : undefined }}
       >
-        {/* Sombra sobre o conteúdo abaixo — acompanha e some */}
+        <CoverFace sweep={!reduceMotion && !isOpening} />
+
+        {/* Sombra projetada pela folha erguida — acompanha a dobra e some */}
         {isOpening ? (
           <motion.div
-            className="pointer-events-none absolute inset-0 z-[1] origin-left"
-            style={{
-              rotateY: shadowRotate,
-              opacity: shadowOpacity,
-              background: `linear-gradient(
-                to right,
-                color-mix(in oklab, var(--color-brand-navy) 42%, transparent) 0%,
-                color-mix(in oklab, var(--color-brand-navy) 16%, transparent) 32%,
-                transparent 68%
-              )`,
-              filter: "blur(18px)",
-              transformStyle: "preserve-3d",
-            }}
+            className="pointer-events-none absolute inset-0"
+            style={{ background: frontShade, opacity: frontShadeOpacity }}
             aria-hidden="true"
           />
         ) : null}
+      </motion.div>
 
-        {/* Única folha */}
+      {/* Aba dobrada — o verso da mesma folha, espelhado na linha de dobra */}
+      {isOpening ? (
         <motion.div
-          className="absolute inset-0 z-[2] flex origin-left flex-col items-center justify-center bg-background px-8 will-change-transform"
+          className="absolute inset-0 z-[2] will-change-transform"
           style={{
-            rotateY: isOpening ? leafRotate : 0,
-            transformStyle: "preserve-3d",
-            backfaceVisibility: "hidden",
-            // sem translateX / scale — só rotação no eixo esquerdo
+            clipPath: clipFlap,
+            transform: flapTransform,
+            transformOrigin: "0px 0px",
+            filter:
+              "drop-shadow(0px 10px 26px color-mix(in oklab, var(--color-brand-navy) 38%, transparent))",
           }}
+          aria-hidden="true"
         >
-          <CoverFace sweep={!reduceMotion && !isOpening} />
+          {/* Verso do papel — levemente mais claro que a frente */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "color-mix(in oklab, var(--color-background) 92%, white)",
+            }}
+          />
 
-          {/* Sombra suave na face (perspectiva / volume) */}
+          {/* Brilho na dobra (curvatura) */}
           <motion.div
             className="pointer-events-none absolute inset-0"
-            style={{
-              opacity: isOpening ? faceShade : 0,
-              background: `linear-gradient(
-                to right,
-                color-mix(in oklab, var(--color-brand-navy) 18%, transparent) 0%,
-                transparent 42%,
-                color-mix(in oklab, var(--color-brand-navy) 8%, transparent) 100%
-              )`,
-            }}
-            aria-hidden="true"
+            style={{ background: flapSheen, opacity: 0.9 }}
           />
 
-          {/* Curva orgânica na lateral direita — destaque na mesma superfície */}
-          <motion.div
-            className="pointer-events-none absolute inset-y-0 right-0 w-[28%]"
+          {/* Sombreado ambiente do verso — volume de papel, nunca um plano chapado */}
+          <div
+            className="pointer-events-none absolute inset-0"
             style={{
-              opacity: isOpening ? curlGlow : 0,
               background: `linear-gradient(
-                to left,
-                color-mix(in oklab, white 55%, transparent) 0%,
-                color-mix(in oklab, var(--color-brand-cream) 40%, transparent) 35%,
-                color-mix(in oklab, var(--color-brand-navy) 10%, transparent) 62%,
-                transparent 100%
+                135deg,
+                color-mix(in oklab, var(--color-brand-navy) 7%, transparent),
+                transparent 45%,
+                color-mix(in oklab, var(--color-brand-navy) 9%, transparent)
               )`,
             }}
-            aria-hidden="true"
-          />
-
-          {/* Espessura da borda direita */}
-          <motion.div
-            className="pointer-events-none absolute inset-y-0 right-0 w-[3px]"
-            style={{
-              opacity: isOpening ? edgeThickness : 0.35,
-              background: `linear-gradient(
-                to left,
-                color-mix(in oklab, var(--color-brand-line) 85%, var(--color-brand-cream)),
-                var(--color-brand-cream)
-              )`,
-              boxShadow: "1px 0 0 color-mix(in oklab, var(--color-brand-navy) 10%, transparent)",
-            }}
-            aria-hidden="true"
-          />
-
-          {/* Lombada / espessura no eixo esquerdo */}
-          <motion.div
-            className="pointer-events-none absolute inset-y-0 left-0 w-[5px]"
-            style={{
-              opacity: spineOpacity,
-              background: `linear-gradient(
-                to right,
-                color-mix(in oklab, var(--color-brand-navy) 20%, var(--color-brand-cream)),
-                var(--color-brand-cream) 70%,
-                transparent
-              )`,
-              boxShadow: "2px 0 12px color-mix(in oklab, var(--color-brand-navy) 14%, transparent)",
-            }}
-            aria-hidden="true"
           />
         </motion.div>
-      </div>
+      ) : null}
     </div>
   );
 }

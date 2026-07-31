@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/common/brand-logo";
-import { useOpeningTransitionActive } from "@/components/loading/opening-transition-context";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -13,7 +12,6 @@ const LINKS = [
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
-  const opening = useOpeningTransitionActive();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -25,9 +23,8 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 border-b border-border bg-background transition-[background-color,opacity] duration-300",
+        "sticky top-0 z-50 border-b border-border bg-background transition-[background-color] duration-300",
         scrolled && "bg-background/90 backdrop-blur-md",
-        opening && "pointer-events-none opacity-0",
       )}
     >
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-6">
