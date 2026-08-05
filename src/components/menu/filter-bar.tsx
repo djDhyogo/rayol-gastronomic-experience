@@ -12,7 +12,7 @@ export function FilterBar({ filters, onChange, bounds }: FilterBarProps) {
   const current = filters.maxPrice ?? max;
 
   return (
-    <div className="flex items-center gap-4 border-t border-border pt-4">
+    <div className="flex items-center gap-4">
       <label
         htmlFor="menu-price"
         className="shrink-0 text-[0.62rem] tracking-[0.18em] text-muted-foreground uppercase"

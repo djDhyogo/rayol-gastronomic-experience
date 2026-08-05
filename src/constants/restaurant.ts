@@ -29,7 +29,11 @@ export const CATEGORY_ORDER = [
   "embalagens",
 ] as const;
 
-export const HIDDEN_CATEGORY_SLUGS: readonly string[] = ["embalagens"];
+export const HIDDEN_CATEGORY_SLUGS: readonly string[] = [
+  "embalagens",
+  "taxa_entrega",
+  "taxa-entrega",
+];
 
 export const PROMO_SLUG = "promocao-do-dia";
 export const HAPPY_HOUR_SLUG = "happy-hour";

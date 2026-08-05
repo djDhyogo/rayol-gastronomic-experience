@@ -64,6 +64,12 @@ export function useGroupedProducts(products: Product[]): ProductGroup[] {
 
 export function priceBounds(products: Product[] | undefined): [number, number] {
   if (!products?.length) return [0, 100];
-  const prices = products.map((product) => product.price);
-  return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
+
+  const prices = products
+    .map((product) => product.price)
+    .filter((price) => Number.isFinite(price) && price > 0);
+
+  if (!prices.length) return [0, 100];
+
+  return [0, Math.ceil(Math.max(...prices))];
 }

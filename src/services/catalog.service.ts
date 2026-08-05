@@ -111,6 +111,7 @@ export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
 
   const products = rawProducts
     .map((product) => toProduct(product, newestCodes))
+    .filter((product) => !HIDDEN_CATEGORY_SLUGS.includes(product.categorySlug))
     .sort(
       (a, b) =>
         orderIndex(a.categorySlug) - orderIndex(b.categorySlug) ||
