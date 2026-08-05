@@ -12,7 +12,7 @@ interface ListViewProps {
 
 export function ListView({ groups, onSelect }: ListViewProps) {
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <div className="space-y-14">
         {groups.map((group) => {
           const headingId = `lista-grupo-${group.slug}`;

@@ -3,15 +3,12 @@ import type { Product } from "@/types/catalog";
 import { normalize } from "@/utils/format";
 import { HAPPY_HOUR_SLUG, PROMO_SLUG } from "@/constants/restaurant";
 
-export type SortMode = "curated" | "price-asc" | "price-desc" | "name";
-
 export interface MenuFilters {
   search: string;
   categorySlug: string | null;
   maxPrice: number | null;
   onlyPromo: boolean;
   onlyHappyHour: boolean;
-  sort: SortMode;
 }
 
 export const defaultFilters: MenuFilters = {
@@ -20,29 +17,14 @@ export const defaultFilters: MenuFilters = {
   maxPrice: null,
   onlyPromo: false,
   onlyHappyHour: false,
-  sort: "curated",
 };
-
-function sortProducts(products: Product[], sort: SortMode): Product[] {
-  const copy = [...products];
-  switch (sort) {
-    case "price-asc":
-      return copy.sort((a, b) => a.price - b.price);
-    case "price-desc":
-      return copy.sort((a, b) => b.price - a.price);
-    case "name":
-      return copy.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-    default:
-      return copy;
-  }
-}
 
 export function useFilteredProducts(products: Product[] | undefined, filters: MenuFilters) {
   return useMemo(() => {
     if (!products) return [];
     const term = normalize(filters.search);
 
-    const filtered = products.filter((product) => {
+    return products.filter((product) => {
       if (filters.categorySlug && product.categorySlug !== filters.categorySlug) return false;
       if (filters.onlyPromo && product.categorySlug !== PROMO_SLUG) return false;
       if (filters.onlyHappyHour && product.categorySlug !== HAPPY_HOUR_SLUG) return false;
@@ -50,8 +32,6 @@ export function useFilteredProducts(products: Product[] | undefined, filters: Me
       if (term && !product.searchIndex.includes(term)) return false;
       return true;
     });
-
-    return sortProducts(filtered, filters.sort);
   }, [products, filters]);
 }
 

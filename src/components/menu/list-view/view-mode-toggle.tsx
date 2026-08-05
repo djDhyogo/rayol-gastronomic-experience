@@ -24,7 +24,7 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
       <ToggleGroupItem
         value="cards"
         aria-label="Visualização em cards"
-        className="min-h-11 gap-1.5 rounded-none border-0 px-3 text-[0.65rem] tracking-[0.14em] uppercase data-[state=on]:bg-brand-navy data-[state=on]:text-primary-foreground"
+        className="min-h-11 gap-1.5 rounded-none border-0 px-3 text-[0.65rem] tracking-[0.14em] text-brand-navy uppercase hover:bg-brand-clay hover:text-accent-foreground data-[state=on]:bg-brand-navy data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-brand-navy data-[state=on]:hover:text-primary-foreground"
       >
         <LayoutGrid className="size-3.5" aria-hidden="true" />
         Cards
@@ -32,7 +32,7 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
       <ToggleGroupItem
         value="list"
         aria-label="Visualização em lista"
-        className="min-h-11 gap-1.5 rounded-none border-0 border-l border-border px-3 text-[0.65rem] tracking-[0.14em] uppercase data-[state=on]:bg-brand-navy data-[state=on]:text-primary-foreground"
+        className="min-h-11 gap-1.5 rounded-none border-0 border-l border-border px-3 text-[0.65rem] tracking-[0.14em] text-brand-navy uppercase hover:bg-brand-clay hover:text-accent-foreground data-[state=on]:bg-brand-navy data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-brand-navy data-[state=on]:hover:text-primary-foreground"
       >
         <List className="size-3.5" aria-hidden="true" />
         Lista
