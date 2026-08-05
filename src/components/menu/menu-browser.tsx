@@ -96,7 +96,10 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
 
       {/* Pai comum: sticky precisa envolver a lista para permanecer fixo durante a rolagem */}
       <div className="mt-5">
-        <div className="sticky top-[4.25rem] z-40 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <div
+          data-category-sticky
+          className="sticky top-[4.25rem] z-40 -mx-4 bg-background/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6"
+        >
           {isPending ? (
             <CategoryRailSkeleton />
           ) : (

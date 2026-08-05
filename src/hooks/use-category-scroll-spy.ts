@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 
-const HEADER_OFFSET_PX = 68; // 4.25rem
-/** Espaço sob o header: categorias + toggle Cards/Lista */
-const RAIL_OFFSET_PX = 168;
+const HEADER_OFFSET_PX = 68; // 4.25rem — site header fixo
+const FALLBACK_RAIL_PX = 180;
+/** Folga entre a barra sticky e o título da seção */
+const SECTION_GAP_PX = 16;
 const CLICK_LOCK_MS = 1000;
 
 export interface CategoryScrollSpyApi {
@@ -14,6 +15,20 @@ export interface CategoryScrollSpyApi {
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Altura total a reservar: header do site + barra sticky de categorias. */
+function measureScrollOffset(): number {
+  const sticky = document.querySelector<HTMLElement>("[data-category-sticky]");
+  const rail = sticky?.offsetHeight ?? FALLBACK_RAIL_PX;
+  return HEADER_OFFSET_PX + rail + SECTION_GAP_PX;
+}
+
+/** Publica o offset em CSS para `scroll-margin-top` das seções. */
+function syncScrollMarginVar() {
+  const offset = measureScrollOffset();
+  document.documentElement.style.setProperty("--category-scroll-offset", `${offset}px`);
+  return offset;
 }
 
 /** Centraliza o chip só no trilho horizontal — nunca mexe no scroll da página. */
@@ -91,6 +106,7 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
     (slug: string | null) => {
       clickLockUntil.current = Date.now() + CLICK_LOCK_MS;
       const behavior: ScrollBehavior = prefersReducedMotion() ? "auto" : "smooth";
+      const offset = syncScrollMarginVar();
 
       if (slug === null) {
         setActiveSlug(null);
@@ -105,16 +121,22 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
       const section = sectionEls.current.get(slug);
       if (!section) return;
 
-      const top =
-        section.getBoundingClientRect().top +
-        window.scrollY -
-        HEADER_OFFSET_PX -
-        RAIL_OFFSET_PX;
-
+      const top = section.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top: Math.max(0, top), behavior });
     },
     [centerRailItem],
   );
+
+  // Mantém --category-scroll-offset alinhado à altura real da barra sticky
+  useEffect(() => {
+    syncScrollMarginVar();
+    const sticky = document.querySelector("[data-category-sticky]");
+    if (!sticky || typeof ResizeObserver === "undefined") return;
+
+    const ro = new ResizeObserver(() => syncScrollMarginVar());
+    ro.observe(sticky);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (sectionSlugs.length === 0) {
@@ -123,7 +145,7 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
       return;
     }
 
-    const topOffset = HEADER_OFFSET_PX + RAIL_OFFSET_PX;
+    const topOffset = measureScrollOffset();
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -150,10 +172,8 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
       observer.disconnect();
       if (observerRef.current === observer) observerRef.current = null;
     };
-    // slugsKey evita recriar o observer a cada render com array novo de mesma lista
   }, [slugsKey, sectionSlugs, pickActiveFromRatios]);
 
-  // Centraliza chip ativo só no trilho (horizontal), sem afetar o scroll da página
   useEffect(() => {
     centerRailItem(activeSlug, true);
   }, [activeSlug, centerRailItem]);
@@ -176,5 +196,6 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
   };
 }
 
-/** Offset CSS para âncora sob header + rail sticky (categorias + toggle). */
-export const CATEGORY_SECTION_SCROLL_MARGIN = "scroll-mt-[calc(4.25rem+10.5rem)]";
+/** Usa a variável medida em runtime (header + sticky + folga). */
+export const CATEGORY_SECTION_SCROLL_MARGIN =
+  "scroll-mt-[var(--category-scroll-offset,15rem)]";
