@@ -178,6 +178,19 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
     return () => window.removeEventListener("resize", measure);
   }, []);
 
+  // Trava pan/scroll touch no documento enquanto a capa existir (peek + opening)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const blockTouchScroll = (event: TouchEvent) => {
+      event.preventDefault();
+    };
+    document.addEventListener("touchmove", blockTouchScroll, { passive: false });
+    return () => {
+      document.removeEventListener("touchmove", blockTouchScroll);
+      window.scrollTo(0, 0);
+    };
+  }, []);
+
   const setPhaseSynced = (next: Phase) => {
     phaseRef.current = next;
     setPhase(next);
@@ -279,10 +292,11 @@ export function OpeningMenuTransition({ hold, onFinished }: OpeningMenuTransitio
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[120]",
+        "fixed inset-0 z-[120] touch-none",
         phase === "hold" && "overflow-hidden bg-background",
         isPeek && "cursor-pointer overflow-visible bg-transparent select-none",
-        phase === "opening" && "pointer-events-none overflow-visible bg-transparent",
+        /* Mantém a capa recebendo o toque no opening — evita scroll na home por baixo */
+        phase === "opening" && "overflow-visible bg-transparent",
       )}
       aria-hidden={phase === "opening" ? true : undefined}
       role={phase === "hold" ? "status" : isPeek ? "button" : undefined}

@@ -4,13 +4,18 @@ const HEADER_OFFSET_PX = 68; // 4.25rem — site header fixo
 const FALLBACK_RAIL_PX = 180;
 /** Folga entre a barra sticky e o título da seção */
 const SECTION_GAP_PX = 16;
-const CLICK_LOCK_MS = 1000;
+const CLICK_LOCK_MS = 1200;
 
 export interface CategoryScrollSpyApi {
   activeSlug: string | null;
   setSectionRef: (slug: string, element: HTMLElement | null) => void;
   setRailItemRef: (slug: string, element: HTMLElement | null) => void;
-  scrollToCategory: (slug: string | null) => void;
+  scrollToCategory: (
+    slug: string | null,
+    options?: { behavior?: ScrollBehavior },
+  ) => void;
+  /** Trava o spy e mantém a categoria (ex.: troca Lista ↔ Fotos). */
+  pinCategory: (slug: string | null) => void;
 }
 
 function prefersReducedMotion() {
@@ -102,10 +107,21 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
     else railItemEls.current.delete(slug);
   }, []);
 
-  const scrollToCategory = useCallback(
+  const pinCategory = useCallback(
     (slug: string | null) => {
       clickLockUntil.current = Date.now() + CLICK_LOCK_MS;
-      const behavior: ScrollBehavior = prefersReducedMotion() ? "auto" : "smooth";
+      ratios.current.clear();
+      setActiveSlug(slug);
+      centerRailItem(slug, false);
+    },
+    [centerRailItem],
+  );
+
+  const scrollToCategory = useCallback(
+    (slug: string | null, options?: { behavior?: ScrollBehavior }) => {
+      clickLockUntil.current = Date.now() + CLICK_LOCK_MS;
+      const behavior: ScrollBehavior =
+        options?.behavior ?? (prefersReducedMotion() ? "auto" : "smooth");
       const offset = syncScrollMarginVar();
 
       if (slug === null) {
@@ -116,7 +132,7 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
       }
 
       setActiveSlug(slug);
-      centerRailItem(slug);
+      centerRailItem(slug, behavior === "smooth");
 
       const section = sectionEls.current.get(slug);
       if (!section) return;
@@ -193,6 +209,7 @@ export function useCategoryScrollSpy(sectionSlugs: string[]): CategoryScrollSpyA
     setSectionRef,
     setRailItemRef,
     scrollToCategory,
+    pinCategory,
   };
 }
 

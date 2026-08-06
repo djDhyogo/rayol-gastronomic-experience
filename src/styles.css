@@ -99,10 +99,14 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Evita flash antes/durante a capa de abertura (tom creme da intro) */
+  /* Capa de abertura: fundo creme + trava scroll/touch para não vazar à home/hero */
   html.intro-lock,
   html.intro-lock body {
     background-color: var(--background);
+    overflow: hidden;
+    overscroll-behavior: none;
+    height: 100%;
+    touch-action: none;
   }
 
   h1,

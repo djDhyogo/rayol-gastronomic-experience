@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ProductCard } from "@/components/cards/product-card";
 import { CategoryRail } from "@/components/menu/category-rail";
 import { FilterBar } from "@/components/menu/filter-bar";
 import { SearchField } from "@/components/menu/search-field";
 import { ProductDialog } from "@/components/menu/product-dialog";
-import {
-  ListView,
-  ViewModeToggle,
-  useMenuViewMode,
-} from "@/components/menu/list-view";
+import { ViewModeToggle, useMenuViewMode } from "@/components/menu/list-view";
+import { ListCategory } from "@/components/menu/list-view/list-category";
+import { ListDivider } from "@/components/menu/list-view/list-divider";
+import { ListFooter } from "@/components/menu/list-view/list-footer";
+import { ListItem } from "@/components/menu/list-view/list-item";
 import { StateMessage } from "@/components/common/state-message";
 import { CategoryRailSkeleton, ProductGridSkeleton } from "@/components/loading/skeletons";
 import { useCatalog } from "@/hooks/use-catalog";
@@ -24,6 +23,7 @@ import {
   useGroupedProducts,
   type MenuFilters,
 } from "@/hooks/use-menu-filters";
+import { cn } from "@/lib/utils";
 import type { Category, Product } from "@/types/catalog";
 
 interface MenuBrowserProps {
@@ -35,7 +35,6 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
   const [filters, setFilters] = useState<MenuFilters>(defaultFilters);
   const [selected, setSelected] = useState<Product | null>(null);
   const [viewMode, setViewMode] = useMenuViewMode();
-  const reduceMotion = useReducedMotion();
 
   // ScrollSpy indexa o cardápio completo — não filtra por rota de categoria
   const activeFilters: MenuFilters = { ...filters, categorySlug: null };
@@ -44,7 +43,7 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
   const bounds = priceBounds(data?.products);
   const sectionSlugs = useMemo(() => groups.map((group) => group.slug), [groups]);
 
-  const { activeSlug, setSectionRef, setRailItemRef, scrollToCategory } =
+  const { activeSlug, setSectionRef, setRailItemRef, scrollToCategory, pinCategory } =
     useCategoryScrollSpy(sectionSlugs);
 
   const patch = (next: Partial<MenuFilters>) => setFilters((prev) => ({ ...prev, ...next }));
@@ -54,6 +53,23 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
     ? catalogCategories.find((item) => item.slug === categorySlug)
     : undefined;
   const railCategories = catalogCategories.filter((item) => sectionSlugs.includes(item.slug));
+
+  /** Após trocar Lista ↔ Fotos, realinha o scroll no início da mesma seção (seções permanecem). */
+  const pendingViewRestore = useRef<string | null | undefined>(undefined);
+
+  const handleViewModeChange = (next: typeof viewMode) => {
+    if (next === viewMode) return;
+    pendingViewRestore.current = activeSlug;
+    pinCategory(activeSlug);
+    setViewMode(next);
+  };
+
+  useLayoutEffect(() => {
+    const slug = pendingViewRestore.current;
+    if (slug === undefined) return;
+    pendingViewRestore.current = undefined;
+    scrollToCategory(slug, { behavior: "auto" });
+  }, [viewMode, scrollToCategory]);
 
   // Deep link /menu/:categoria → rola até a seção uma vez após carregar
   const didInitialScroll = useRef(false);
@@ -113,7 +129,7 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
 
           {!isPending && data ? (
             <div className="mt-3 flex justify-end">
-              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />
             </div>
           ) : null}
         </div>
@@ -142,27 +158,30 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
           ) : null}
 
           {!isPending && !isError && products.length > 0 ? (
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={viewMode}
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {viewMode === "cards" ? (
-                  <div className="space-y-16">
-                    {groups.map((group) => (
-                      <section
-                        key={group.slug}
-                        ref={(node) => setSectionRef(group.slug, node)}
-                        data-category-slug={group.slug}
-                        aria-labelledby={`grupo-${group.slug}`}
-                        className={CATEGORY_SECTION_SCROLL_MARGIN}
-                      >
+            <div>
+              {/*
+                Seções estáveis: só o miolo troca (lista/cards).
+                Evita remount que quebrava o foco ao alternar o modo.
+              */}
+              <div className={cn(viewMode === "list" ? "space-y-14" : "space-y-16")}>
+                {groups.map((group) => {
+                  const headingId =
+                    viewMode === "list" ? `lista-grupo-${group.slug}` : `grupo-${group.slug}`;
+
+                  return (
+                    <section
+                      key={group.slug}
+                      ref={(node) => setSectionRef(group.slug, node)}
+                      data-category-slug={group.slug}
+                      aria-labelledby={headingId}
+                      className={CATEGORY_SECTION_SCROLL_MARGIN}
+                    >
+                      {viewMode === "list" ? (
+                        <ListCategory id={headingId} name={group.name} />
+                      ) : (
                         <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3">
                           <h2
-                            id={`grupo-${group.slug}`}
+                            id={headingId}
                             className="font-display text-2xl text-foreground sm:text-3xl"
                           >
                             {group.name}
@@ -175,25 +194,38 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
                             Ver categoria
                           </button>
                         </div>
-                        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      )}
+
+                      {viewMode === "list" ? (
+                        <ul className="mt-2">
                           {group.products.map((product, index) => (
                             <li key={product.id}>
-                              <ProductCard product={product} index={index} onSelect={setSelected} />
+                              {index > 0 ? <ListDivider /> : null}
+                              <ListItem product={product} onSelect={setSelected} />
                             </li>
                           ))}
                         </ul>
-                      </section>
-                    ))}
-                  </div>
-                ) : (
-                  <ListView
-                    groups={groups}
-                    onSelect={setSelected}
-                    setSectionRef={setSectionRef}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+                      ) : (
+                        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {group.products.map((product, index) => (
+                            <li key={product.id}>
+                              <ProductCard
+                                product={product}
+                                index={index}
+                                disableEntranceAnimation
+                                onSelect={setSelected}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {viewMode === "list" ? <ListFooter /> : null}
+            </div>
           ) : null}
         </div>
       </div>

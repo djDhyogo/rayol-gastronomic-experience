@@ -100,7 +100,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", type: "image/png", href: "/favicon-96x96.png", sizes: "96x96" },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "shortcut icon", href: "/favicon.ico" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
 
@@ -146,9 +150,10 @@ function AppShell() {
         <div
           className={cn(
             /* Sem transition-opacity — evita “animação CSS” antes da abertura */
-            introActive && holdCover && "pointer-events-none invisible",
+            introActive && "pointer-events-none",
+            introActive && holdCover && "invisible",
           )}
-          aria-hidden={introActive && holdCover ? true : undefined}
+          aria-hidden={introActive ? true : undefined}
         >
           <SiteLayout>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
