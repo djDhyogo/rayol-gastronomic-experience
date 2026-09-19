@@ -2,15 +2,11 @@ import { apiGet } from "@/services/api-client";
 import { categorySchema, paginatedSchema, productSchema } from "@/schemas/catalog";
 import type { ApiCategory, ApiProduct, Catalog, Category, Product, ProductBadge } from "@/types/catalog";
 import { cleanCategoryName, formatPrice, normalize, toNumber, truncate } from "@/utils/format";
-import {
-  CATEGORY_ORDER,
-  HAPPY_HOUR_SLUG,
-  HIDDEN_CATEGORY_SLUGS,
-  PROMO_SLUG,
-} from "@/constants/restaurant";
+import { HAPPY_HOUR_SLUG, HIDDEN_CATEGORY_SLUGS, PROMO_SLUG } from "@/constants/restaurant";
 
 const PAGE_SIZE = 200;
 const MAX_PAGES = 20;
+const FALLBACK_POSITION = Number.MAX_SAFE_INTEGER;
 
 const productsPage = paginatedSchema(productSchema);
 const categoriesPage = paginatedSchema(categorySchema);
@@ -35,9 +31,11 @@ async function fetchAllPages<T>(
   return items;
 }
 
-function orderIndex(slug: string): number {
-  const index = CATEGORY_ORDER.indexOf(slug as (typeof CATEGORY_ORDER)[number]);
-  return index === -1 ? CATEGORY_ORDER.length : index;
+function compareByPosition(
+  a: { position: number; name: string },
+  b: { position: number; name: string },
+): number {
+  return a.position - b.position || a.name.localeCompare(b.name, "pt-BR");
 }
 
 function buildBadges(product: ApiProduct, newestCodes: Set<string>): ProductBadge[] {
@@ -89,10 +87,7 @@ function toCategories(raw: ApiCategory[], products: Product[]): Category[] {
       (category) =>
         category.count > 0 && !HIDDEN_CATEGORY_SLUGS.includes(category.slug),
     )
-    .sort(
-      (a, b) =>
-        orderIndex(a.slug) - orderIndex(b.slug) || a.name.localeCompare(b.name, "pt-BR"),
-    );
+    .sort(compareByPosition);
 }
 
 export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
@@ -109,14 +104,22 @@ export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
       .map((product) => product.code as string),
   );
 
+  const positionBySlug = new Map(
+    rawCategories.map((category) => [category.slug, category.position]),
+  );
+
   const products = rawProducts
     .map((product) => toProduct(product, newestCodes))
     .filter((product) => !HIDDEN_CATEGORY_SLUGS.includes(product.categorySlug))
-    .sort(
-      (a, b) =>
-        orderIndex(a.categorySlug) - orderIndex(b.categorySlug) ||
-        a.name.localeCompare(b.name, "pt-BR"),
-    );
+    .sort((a, b) => {
+      const positionA = positionBySlug.get(a.categorySlug) ?? FALLBACK_POSITION;
+      const positionB = positionBySlug.get(b.categorySlug) ?? FALLBACK_POSITION;
+      return (
+        positionA - positionB ||
+        a.categoryName.localeCompare(b.categoryName, "pt-BR") ||
+        a.name.localeCompare(b.name, "pt-BR")
+      );
+    });
 
   return { products, categories: toCategories(rawCategories, products) };
 }

@@ -16,21 +16,6 @@ export const RESTAURANT = {
   ],
 } as const;
 
-export const CATEGORY_ORDER = [
-  "promocao-do-dia",
-  "happy-hour",
-  "entradas",
-  "salada-proteina",
-  "compartilhar",
-  "individual",
-  "tradicionais",
-  "prato-executivo",
-  "sobremesas",
-  "drinks",
-  "bebidas",
-  "embalagens",
-] as const;
-
 export const HIDDEN_CATEGORY_SLUGS: readonly string[] = [
   "embalagens",
   "taxa_entrega",

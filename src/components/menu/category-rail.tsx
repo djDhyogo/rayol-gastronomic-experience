@@ -16,7 +16,7 @@ import {
   Wine,
 } from "lucide-react";
 import type { Category } from "@/types/catalog";
-import { HIDDEN_CATEGORY_SLUGS, CATEGORY_ORDER } from "@/constants/restaurant";
+import { HIDDEN_CATEGORY_SLUGS } from "@/constants/restaurant";
 import { cn } from "@/lib/utils";
 
 interface CategoryRailProps {
@@ -76,16 +76,12 @@ function labelClass() {
   return "line-clamp-2 text-[0.55rem] font-semibold leading-tight tracking-[0.05em] uppercase sm:text-[0.62rem] sm:tracking-[0.06em]";
 }
 
-function orderIndex(slug: string): number {
-  const index = CATEGORY_ORDER.indexOf(slug as (typeof CATEGORY_ORDER)[number]);
-  return index === -1 ? CATEGORY_ORDER.length : index;
-}
-
 function buildRailItems(categories: Category[]): RailItem[] {
-  const visible = categories
+  const visible = [...categories]
     .filter((category) => !HIDDEN_CATEGORY_SLUGS.includes(category.slug))
     .sort(
-      (a, b) => orderIndex(a.slug) - orderIndex(b.slug) || a.name.localeCompare(b.name, "pt-BR"),
+      (a, b) =>
+        a.position - b.position || a.name.localeCompare(b.name, "pt-BR"),
     );
 
   return [{ kind: "all" }, ...visible.map((category) => ({ kind: "category" as const, category }))];
