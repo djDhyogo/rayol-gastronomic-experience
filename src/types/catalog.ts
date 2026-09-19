@@ -19,6 +19,7 @@ export interface Product {
   categoryId: string | null;
   categoryName: string;
   categorySlug: string;
+  position: number;
   badges: ProductBadge[];
   searchIndex: string;
 }

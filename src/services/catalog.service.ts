@@ -67,6 +67,7 @@ function toProduct(raw: ApiProduct, newestCodes: Set<string>): Product {
     categoryId: raw.category,
     categoryName,
     categorySlug: raw.category_slug,
+    position: raw.position,
     badges: buildBadges(raw, newestCodes),
     searchIndex: normalize(
       [raw.name, description, categoryName, raw.category_slug, raw.slug, raw.code].join(" "),
@@ -112,11 +113,11 @@ export async function fetchCatalog(signal?: AbortSignal): Promise<Catalog> {
     .map((product) => toProduct(product, newestCodes))
     .filter((product) => !HIDDEN_CATEGORY_SLUGS.includes(product.categorySlug))
     .sort((a, b) => {
-      const positionA = positionBySlug.get(a.categorySlug) ?? FALLBACK_POSITION;
-      const positionB = positionBySlug.get(b.categorySlug) ?? FALLBACK_POSITION;
+      const categoryPositionA = positionBySlug.get(a.categorySlug) ?? FALLBACK_POSITION;
+      const categoryPositionB = positionBySlug.get(b.categorySlug) ?? FALLBACK_POSITION;
       return (
-        positionA - positionB ||
-        a.categoryName.localeCompare(b.categoryName, "pt-BR") ||
+        categoryPositionA - categoryPositionB ||
+        a.position - b.position ||
         a.name.localeCompare(b.name, "pt-BR")
       );
     });
