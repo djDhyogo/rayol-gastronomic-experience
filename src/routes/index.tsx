@@ -6,7 +6,9 @@ import { BrandLogo } from "@/components/common/brand-logo";
 import { ProductCard } from "@/components/cards/product-card";
 import { ProductDialog } from "@/components/menu/product-dialog";
 import { ProductGridSkeleton } from "@/components/loading/skeletons";
+import { StateMessage } from "@/components/common/state-message";
 import { useCatalog } from "@/hooks/use-catalog";
+import { ApiError } from "@/services/api-client";
 import { useHighlights } from "@/hooks/use-highlights";
 import { RESTAURANT } from "@/constants/restaurant";
 import type { Product } from "@/types/catalog";
@@ -47,7 +49,8 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { data, isPending } = useCatalog();
+  const { data, isPending, isError, error, refetch } = useCatalog();
+  const menuMissing = error instanceof ApiError && error.status === 404;
   const highlights = useHighlights(data);
   const [selected, setSelected] = useState<Product | null>(null);
 
@@ -84,6 +87,18 @@ function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
         {isPending ? (
           <ProductGridSkeleton count={3} />
+        ) : isError ? (
+          <StateMessage
+            variant="error"
+            title={menuMissing ? "Cardápio não encontrado" : "Não conseguimos carregar o cardápio"}
+            description={
+              menuMissing
+                ? "Esse link não corresponde a um cardápio ativo."
+                : "Verifique sua conexão e tente novamente em alguns instantes."
+            }
+            actionLabel="Tentar novamente"
+            onAction={() => refetch()}
+          />
         ) : (
           <div className="space-y-20">
             {highlights.map((highlight) => (

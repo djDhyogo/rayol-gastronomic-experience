@@ -15,21 +15,25 @@ function coverFor(product: Product) {
 function ProductDetail({ product }: { product: Product }) {
   return (
     <div className="flex flex-col">
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-secondary sm:aspect-[2/1]">
+      <div className="relative aspect-video w-full overflow-hidden bg-secondary">
         <img
-          src={coverFor(product)}
+          src={product.imageUrl ?? coverFor(product)}
           alt=""
           aria-hidden="true"
           loading="lazy"
           className="size-full object-cover"
         />
-        <div className="absolute inset-0 bg-brand-navy/45" />
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 grid place-items-center font-display text-6xl text-background/90"
-        >
-          {product.name.trim().charAt(0).toLocaleUpperCase("pt-BR")}
-        </span>
+        {product.imageUrl ? null : (
+          <>
+            <div className="absolute inset-0 bg-brand-navy/45" />
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 grid place-items-center font-display text-6xl text-background/90"
+            >
+              {product.name.trim().charAt(0).toLocaleUpperCase("pt-BR")}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="px-6 pt-6 pb-8 sm:px-8">

@@ -2,8 +2,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgePercent,
   CakeSlice,
+  Coffee,
   ConciergeBell,
   CookingPot,
+  Croissant,
   CupSoda,
   HandPlatter,
   LayoutGrid,
@@ -46,6 +48,10 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   porcoes: Package,
   saladas: Salad,
   petiscos: Utensils,
+  cafe: Coffee,
+  paes: Croissant,
+  padaria: Croissant,
+  brunch: Coffee,
 };
 
 function iconForSlug(slug: string): LucideIcon {
@@ -79,10 +85,7 @@ function labelClass() {
 function buildRailItems(categories: Category[]): RailItem[] {
   const visible = [...categories]
     .filter((category) => !HIDDEN_CATEGORY_SLUGS.includes(category.slug))
-    .sort(
-      (a, b) =>
-        a.position - b.position || a.name.localeCompare(b.name, "pt-BR"),
-    );
+    .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, "pt-BR"));
 
   return [{ kind: "all" }, ...visible.map((category) => ({ kind: "category" as const, category }))];
 }

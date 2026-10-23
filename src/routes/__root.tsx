@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  retainSearchParams,
   useRouter,
   HeadContent,
   Scripts,
@@ -17,6 +18,7 @@ import { OpeningTransitionProvider } from "@/components/loading/opening-transiti
 import { Toaster } from "@/components/ui/sonner";
 import { useCatalog } from "@/hooks/use-catalog";
 import { useBootSequence } from "@/hooks/use-boot-sequence";
+import { validateMenuSearch } from "@/lib/menu-search";
 import { cn } from "@/lib/utils";
 
 function NotFoundComponent() {
@@ -80,6 +82,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  validateSearch: validateMenuSearch,
+  search: {
+    middlewares: [retainSearchParams(["menu"])],
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

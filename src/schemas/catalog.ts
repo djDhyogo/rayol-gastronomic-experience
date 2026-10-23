@@ -7,6 +7,14 @@ export const categorySchema = z.object({
   position: z.number().default(0),
 });
 
+export const menuSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  position: z.number().default(0),
+  is_default: z.boolean().default(false),
+});
+
 export const productSchema = z.object({
   id: z.string(),
   code: z.string().nullable().default(null),
@@ -32,13 +40,8 @@ export function paginatedSchema<T extends z.ZodTypeAny>(item: T) {
 
 export const contactFormSchema = z.object({
   name: z.string().min(2, "Informe seu nome completo."),
-  phone: z
-    .string()
-    .min(10, "Informe um telefone válido com DDD.")
-    .max(20, "Telefone muito longo."),
-  people: z
-    .string()
-    .regex(/^[1-9]\d?$/, "Informe de 1 a 99 pessoas."),
+  phone: z.string().min(10, "Informe um telefone válido com DDD.").max(20, "Telefone muito longo."),
+  people: z.string().regex(/^[1-9]\d?$/, "Informe de 1 a 99 pessoas."),
   message: z.string().max(400, "Mensagem muito longa.").optional().or(z.literal("")),
 });
 

@@ -1,8 +1,9 @@
 import type { z } from "zod";
-import type { categorySchema, productSchema } from "@/schemas/catalog";
+import type { categorySchema, menuSchema, productSchema } from "@/schemas/catalog";
 
 export type ApiCategory = z.infer<typeof categorySchema>;
 export type ApiProduct = z.infer<typeof productSchema>;
+export type PublicMenu = z.infer<typeof menuSchema>;
 
 export type ProductBadge = "Promoção" | "Happy Hour" | "Chef recomenda" | "Novidade";
 
@@ -21,6 +22,7 @@ export interface Product {
   categorySlug: string;
   position: number;
   badges: ProductBadge[];
+  imageUrl: string | null;
   searchIndex: string;
 }
 

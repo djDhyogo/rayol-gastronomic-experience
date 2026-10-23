@@ -38,13 +38,22 @@ export function ProductCard({
         aria-label={`Ver detalhes de ${product.name}`}
         className="group flex h-full w-full flex-col rounded-lg border border-border bg-card p-5 text-left transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-brand-clay/30 hover:shadow-[var(--shadow-lift)]"
       >
-        <div className="relative flex h-28 items-center justify-center overflow-hidden rounded-md bg-secondary">
-          <span
-            aria-hidden="true"
-            className="font-display text-6xl leading-none text-brand-navy/12 transition-transform duration-500 group-hover:scale-105"
-          >
-            {initial}
-          </span>
+        <div className="relative aspect-video overflow-hidden rounded-md bg-secondary">
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 grid place-items-center font-display text-6xl leading-none text-brand-navy/12 transition-transform duration-500 group-hover:scale-105"
+            >
+              {initial}
+            </span>
+          )}
           {product.badges.length > 0 ? (
             <span className="absolute top-2 left-2 rounded-full bg-brand-clay px-2.5 py-1 text-[0.6rem] font-medium tracking-[0.14em] text-primary-foreground uppercase">
               {product.badges[0]}

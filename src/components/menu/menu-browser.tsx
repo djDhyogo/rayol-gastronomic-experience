@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ProductCard } from "@/components/cards/product-card";
 import { CategoryRail } from "@/components/menu/category-rail";
+import { MenuSwitcher } from "@/components/menu/menu-switcher";
 import { FilterBar } from "@/components/menu/filter-bar";
 import { SearchField } from "@/components/menu/search-field";
 import { ProductDialog } from "@/components/menu/product-dialog";
@@ -11,7 +13,7 @@ import { ListFooter } from "@/components/menu/list-view/list-footer";
 import { ListItem } from "@/components/menu/list-view/list-item";
 import { StateMessage } from "@/components/common/state-message";
 import { CategoryRailSkeleton, ProductGridSkeleton } from "@/components/loading/skeletons";
-import { useCatalog } from "@/hooks/use-catalog";
+import { useCatalog, useMenus, useRequestedMenuSlug } from "@/hooks/use-catalog";
 import {
   CATEGORY_SECTION_SCROLL_MARGIN,
   useCategoryScrollSpy,
@@ -23,18 +25,26 @@ import {
   useGroupedProducts,
   type MenuFilters,
 } from "@/hooks/use-menu-filters";
+import { resolveActiveMenu } from "@/lib/menu-search";
 import { cn } from "@/lib/utils";
-import type { Category, Product } from "@/types/catalog";
+import { ApiError } from "@/services/api-client";
+import type { Category, Product, PublicMenu } from "@/types/catalog";
 
 interface MenuBrowserProps {
   categorySlug?: string;
 }
 
 export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
-  const { data, isPending, isError, refetch } = useCatalog();
+  const { data, isPending, isError, error, refetch } = useCatalog();
+  const { data: menus } = useMenus();
+  const requestedMenu = useRequestedMenuSlug();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<MenuFilters>(defaultFilters);
   const [selected, setSelected] = useState<Product | null>(null);
   const [viewMode, setViewMode] = useMenuViewMode();
+  const activeMenu = resolveActiveMenu(menus, requestedMenu);
+  const severalMenus = (menus?.length ?? 0) > 1;
+  const menuMissing = error instanceof ApiError && error.status === 404;
 
   // ScrollSpy indexa o cardápio completo — não filtra por rota de categoria
   const activeFilters: MenuFilters = { ...filters, categorySlug: null };
@@ -47,6 +57,48 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
     useCategoryScrollSpy(sectionSlugs);
 
   const patch = (next: Partial<MenuFilters>) => setFilters((prev) => ({ ...prev, ...next }));
+
+  useEffect(() => {
+    setFilters(defaultFilters);
+    setSelected(null);
+  }, [requestedMenu]);
+
+  useEffect(() => {
+    if (!menus || menus.length < 2) return;
+    if (requestedMenu && menus.some((menu) => menu.slug === requestedMenu)) return;
+    if (requestedMenu) return;
+
+    const fallback = menus.find((menu) => menu.is_default) ?? menus[0];
+    if (!fallback) return;
+
+    const search = (prev: { menu?: string }) => ({ ...prev, menu: fallback.slug });
+    if (categorySlug) {
+      void navigate({
+        to: "/menu/$categoria",
+        params: { categoria: categorySlug },
+        search,
+        replace: true,
+        resetScroll: false,
+      });
+      return;
+    }
+
+    void navigate({
+      to: "/menu",
+      search,
+      replace: true,
+      resetScroll: false,
+    });
+  }, [menus, requestedMenu, navigate, categorySlug]);
+
+  const selectMenu = (menu: PublicMenu) => {
+    if (menu.slug === activeMenu?.slug) return;
+    void navigate({
+      to: "/menu",
+      search: (prev) => ({ ...prev, menu: menu.slug }),
+      resetScroll: true,
+    });
+  };
 
   const catalogCategories: Category[] = data?.categories ?? [];
   const category = categorySlug
@@ -88,14 +140,27 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <header className="max-w-2xl">
-        <p className="eyebrow">{category ? category.name : "Cardápio completo"}</p>
+        <p className="eyebrow">
+          {category
+            ? (activeMenu?.name ?? "Cardápio")
+            : severalMenus
+              ? "Cardápio"
+              : "Cardápio completo"}
+        </p>
         <h1 className="mt-3 font-display text-3xl leading-tight text-foreground sm:text-5xl">
-          {category ? category.name : "Nosso cardápio"}
+          {category
+            ? category.name
+            : severalMenus && activeMenu
+              ? activeMenu.name
+              : "Nosso cardápio"}
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
           Pratos de mar e terra preparados diariamente. Toque em qualquer item para ver a descrição
           completa.
         </p>
+        {menus ? (
+          <MenuSwitcher menus={menus} activeSlug={activeMenu?.slug ?? null} onSelect={selectMenu} />
+        ) : null}
       </header>
 
       <div className="mt-9 flex flex-col gap-5">
@@ -140,8 +205,14 @@ export function MenuBrowser({ categorySlug }: MenuBrowserProps) {
           {isError ? (
             <StateMessage
               variant="error"
-              title="Não conseguimos carregar o cardápio"
-              description="Verifique sua conexão e tente novamente em alguns instantes."
+              title={
+                menuMissing ? "Cardápio não encontrado" : "Não conseguimos carregar o cardápio"
+              }
+              description={
+                menuMissing
+                  ? "Esse link não corresponde a um cardápio ativo. Escolha outro acima ou tente de novo."
+                  : "Verifique sua conexão e tente novamente em alguns instantes."
+              }
               actionLabel="Tentar novamente"
               onAction={() => refetch()}
             />

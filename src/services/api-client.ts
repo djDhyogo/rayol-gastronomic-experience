@@ -20,17 +20,22 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
     });
   } catch (error) {
     if ((error as Error)?.name === "AbortError") throw error;
-    throw new ApiError(
-      "Não foi possível se conectar ao cardápio. Verifique sua conexão.",
-    );
+    throw new ApiError("Não foi possível se conectar ao cardápio. Verifique sua conexão.");
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      `O cardápio não pôde ser carregado (erro ${response.status}).`,
-      response.status,
-    );
+    throw new ApiError(await readErrorMessage(response), response.status);
   }
 
   return (await response.json()) as T;
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const data = (await response.json()) as { detail?: unknown };
+    if (typeof data.detail === "string" && data.detail.trim()) return data.detail.trim();
+  } catch {
+    // corpo vazio ou não-JSON
+  }
+  return `O cardápio não pôde ser carregado (erro ${response.status}).`;
 }
