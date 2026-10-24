@@ -24,6 +24,11 @@ export const productSchema = z.object({
   category_name: z.string().default(""),
   category_slug: z.string().default(""),
   sell_type: z.string().nullable().default(null),
+  photo: z.preprocess((value) => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return trimmed || null;
+  }, z.string().nullable()),
   price: z.string(),
   description: z.string().nullable().default(""),
   position: z.number().default(0),

@@ -1,27 +1,31 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { MenuBrowser } from "@/components/menu/menu-browser";
 import { RESTAURANT } from "@/constants/restaurant";
-import { menuHref } from "@/lib/menu-search";
 
 const title = `Cardápio — ${RESTAURANT.fullName}`;
 const description =
   "Cardápio completo do Rayol Bistrô Terra & Mar: entradas, pratos de mar e terra, sobremesas, drinks e happy hour com preços atualizados.";
 
 export const Route = createFileRoute("/menu/")({
-  head: ({ match }) => {
-    const href = menuHref(match.search.menu);
-    return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: href },
-      ],
-      links: [{ rel: "canonical", href }],
-    };
+  beforeLoad: ({ search }) => {
+    if (!search.catalog_slug) return;
+    throw redirect({
+      to: "/menu/$catalogo",
+      params: { catalogo: search.catalog_slug },
+      replace: true,
+    });
   },
+  head: () => ({
+    meta: [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "/menu" },
+    ],
+    links: [{ rel: "canonical", href: "/menu" }],
+  }),
   component: MenuPage,
 });
 

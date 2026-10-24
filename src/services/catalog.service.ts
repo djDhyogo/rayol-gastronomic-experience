@@ -12,7 +12,6 @@ import type {
 } from "@/types/catalog";
 import { cleanCategoryName, formatPrice, normalize, toNumber, truncate } from "@/utils/format";
 import { HAPPY_HOUR_SLUG, HIDDEN_CATEGORY_SLUGS, PROMO_SLUG } from "@/constants/restaurant";
-import { productImageUrl } from "@/lib/product-images";
 
 const PAGE_SIZE = 200;
 const MAX_PAGES = 20;
@@ -32,7 +31,7 @@ async function fetchAllPages<T>(
 
   for (let page = 1; page <= MAX_PAGES; page += 1) {
     const raw = await apiGet<unknown>(
-      withMenu(`/catalog/${resource}/?page=${page}&page_size=${PAGE_SIZE}`, menu),
+      withCatalogSlug(`/catalog/${resource}/?page=${page}&page_size=${PAGE_SIZE}`, menu),
       signal,
     );
     const parsed = parse(raw);
@@ -81,17 +80,17 @@ function toProduct(raw: ApiProduct, newestCodes: Set<string>): Product {
     categorySlug: raw.category_slug,
     position: raw.position,
     badges: buildBadges(raw, newestCodes),
-    imageUrl: productImageUrl(raw.slug),
+    imageUrl: raw.photo,
     searchIndex: normalize(
       [raw.name, description, categoryName, raw.category_slug, raw.slug, raw.code].join(" "),
     ),
   };
 }
 
-function withMenu(path: string, menu: string | null): string {
-  if (!menu) return path;
+function withCatalogSlug(path: string, catalogSlug: string | null): string {
+  if (!catalogSlug) return path;
   const joiner = path.includes("?") ? "&" : "?";
-  return `${path}${joiner}menu=${encodeURIComponent(menu)}`;
+  return `${path}${joiner}catalog_slug=${encodeURIComponent(catalogSlug)}`;
 }
 
 export async function fetchMenus(signal?: AbortSignal): Promise<PublicMenu[]> {

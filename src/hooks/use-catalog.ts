@@ -1,10 +1,8 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
 import { fetchCatalog, fetchMenus } from "@/services/catalog.service";
 import { queryKeys } from "@/lib/query-keys";
-import { catalogMenuParam } from "@/lib/menu-search";
 import { ApiError } from "@/services/api-client";
-import type { Catalog, Product, PublicMenu } from "@/types/catalog";
+import type { Catalog, Product } from "@/types/catalog";
 
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 30 * 60 * 1000;
@@ -42,19 +40,10 @@ export function useMenus() {
   return useQuery(menusQueryOptions());
 }
 
-export function useRequestedMenuSlug(): string | undefined {
-  return useSearch({ from: "__root__" }).menu;
-}
-
-export function useCatalogMenuParam(menus: PublicMenu[] | undefined): string | null {
-  const requested = useRequestedMenuSlug();
-  return catalogMenuParam(menus, requested);
-}
-
-export function useCatalog() {
-  const { data: menus } = useMenus();
-  const menu = useCatalogMenuParam(menus);
-  return useQuery(catalogQueryOptions(menu));
+/** `catalogSlug` vem de `/menu/:slug`. Ausente, a API devolve a listagem geral. */
+export function useCatalog(catalogSlug?: string | null) {
+  const slug = catalogSlug?.trim() || null;
+  return useQuery(catalogQueryOptions(slug));
 }
 
 export function findProductBySlug(catalog: Catalog | undefined, slug: string): Product | undefined {

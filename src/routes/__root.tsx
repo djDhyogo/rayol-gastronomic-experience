@@ -3,8 +3,8 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  retainSearchParams,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -83,9 +83,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   validateSearch: validateMenuSearch,
-  search: {
-    middlewares: [retainSearchParams(["menu"])],
-  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -135,7 +132,10 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function AppShell() {
-  const { isFetched, isError } = useCatalog();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const catalogMatch = pathname.match(/^\/menu\/([^/]+)/);
+  const catalogSlug = catalogMatch?.[1] ? decodeURIComponent(catalogMatch[1]) : null;
+  const { isFetched, isError } = useCatalog(catalogSlug);
   const { holdCover } = useBootSequence(isFetched || isError);
   /** Capa viva até o fim da abertura — evita header/hero “acordarem” no meio do efeito */
   const [introDone, setIntroDone] = useState(false);

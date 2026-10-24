@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MenuBrowser } from "@/components/menu/menu-browser";
 import { RESTAURANT } from "@/constants/restaurant";
 import { menuHref } from "@/lib/menu-search";
 import { toTitleCase } from "@/utils/format";
 
-export const Route = createFileRoute("/menu/$categoria")({
-  head: ({ params, match }) => {
+export const Route = createFileRoute("/menu/$catalogo/$categoria")({
+  head: ({ params }) => {
     const label = toTitleCase(params.categoria.replace(/-/g, " "));
     const title = `${label} — ${RESTAURANT.fullName}`;
     const description = `Itens da categoria ${label} no cardápio do ${RESTAURANT.fullName}, com descrições e preços atualizados.`;
-    const href = menuHref(match.search.menu, params.categoria);
+    const href = menuHref(params.catalogo, params.categoria);
     return {
       meta: [
         { title },
@@ -26,6 +25,5 @@ export const Route = createFileRoute("/menu/$categoria")({
 });
 
 function CategoryPage() {
-  const { categoria } = Route.useParams();
-  return <MenuBrowser categorySlug={categoria} />;
+  return null;
 }

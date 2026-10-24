@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BadgePercent,
+  Cake,
   CakeSlice,
   Coffee,
   ConciergeBell,
@@ -12,9 +13,11 @@ import {
   Martini,
   Package,
   Salad,
+  Sandwich,
   Smile,
   Soup,
   Utensils,
+  Wheat,
   Wine,
 } from "lucide-react";
 import type { Category } from "@/types/catalog";
@@ -48,6 +51,9 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   porcoes: Package,
   saladas: Salad,
   petiscos: Utensils,
+  bolos: Cake,
+  cuscuz: Wheat,
+  tapioca: Sandwich,
   cafe: Coffee,
   paes: Croissant,
   padaria: Croissant,
